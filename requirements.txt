@@ -1,0 +1,8 @@
+gensim~=4.0.1
+sacrebleu~=1.5.1
+pyemd
+nltk~=3.5
+tqdm~=4.59.0
+scipy~=1.6.1
+pandas~=1.2.4
+bert-score
