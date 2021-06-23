@@ -1,11 +1,13 @@
 from typing import List
 
 from bert_score import BERTScorer
+from tqdm import tqdm
 
 from common import Metric, Judgements
 
 
 class BERTScore(Metric):
+    label = "BERTScore"
 
     def __init__(self, tgt_lang: str):
         self.scorer = BERTScorer(lang=tgt_lang, rescale_with_baseline=True)
@@ -14,6 +16,8 @@ class BERTScore(Metric):
         pass
 
     def compute(self, judgements: Judgements) -> List[float]:
-        P, R, F1 = self.scorer.score(judgements.translations, judgements.references)
+        f_scores = [self.scorer.score([trans], [ref])[-1][0]
+                    for trans, ref in tqdm(zip(judgements.translations, judgements.references),
+                                           desc="BERTScore", total=len(judgements))]
 
-        return F1
+        return f_scores

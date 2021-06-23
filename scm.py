@@ -44,5 +44,5 @@ class SCM(Metric):
             ref_index = self.dictionary.doc2bow(reference_words)
             trans_index = self.dictionary.doc2bow(translation_words)
 
-            out_scores.append(self.similarity_matrix.inner_product(ref_index, trans_index, normalized=(True, False)))
+            out_scores.append(self.similarity_matrix.inner_product(ref_index, trans_index, normalized=(True, True)))
         return out_scores
