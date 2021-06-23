@@ -13,7 +13,8 @@ if __name__ == '__main__':
         METEOR(),
         BERTScore(tgt_lang="en"),
         WMD(tgt_lang="en"),
-        SCM(tgt_lang="en")
+        SCM(tgt_lang="en", use_tfidf=False),
+        SCM(tgt_lang="en", use_tfidf=True)
     ]
     correlations = {m.label: {} for m in metrics}
     correlations["human"] = {}
