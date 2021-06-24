@@ -38,5 +38,5 @@ class WMD(Metric):
             reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in self.stopwords]
             translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in self.stopwords]
 
-            out_scores.append(self.w2v_model.wmdistance(reference_words, translation_words))
+            out_scores.append(self.w2v_model.wv.wmdistance(reference_words, translation_words))
         return out_scores
