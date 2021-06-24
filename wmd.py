@@ -3,6 +3,7 @@ from typing import List
 from gensim.parsing import preprocess_string
 from gensim.utils import simple_preprocess
 from tqdm import tqdm
+from gensim.models.fasttext import load_facebook_model
 
 from common import Metric, Judgements
 import gensim.downloader as api
@@ -18,7 +19,7 @@ class WMD(Metric):
 
     def __init__(self, tgt_lang: str):
         if tgt_lang == "en":
-            self.w2v_model = api.load('word2vec-google-news-300')
+            self.w2v_model = load_facebook_model('https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.en.300.bin.gz')
             self.w2v_model.init_sims(replace=True)
             nltk.download('stopwords')
             self.stopwords = stopwords.words('english')
