@@ -5,7 +5,7 @@ from gensim.utils import simple_preprocess
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from nltk.corpus import stopwords
 import gensim.downloader as api
-from gensim.models.fasttext import load_facebook_model
+from gensim.models.fasttext import load_facebook_vectors
 from tqdm import tqdm
 import nltk
 
@@ -22,7 +22,7 @@ class SCM(Metric):
 
     def __init__(self, tgt_lang: str, use_tfidf: bool):
         if tgt_lang == "en":
-            self.w2v_model = load_facebook_model('https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.en.300.bin.gz')
+            self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
             self.w2v_model.init_sims(replace=True)
             nltk.download('stopwords')
             self.stopwords = stopwords.words('english')
