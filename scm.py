@@ -42,13 +42,10 @@ class SCM(Metric):
         if self.use_contextual:
 
             def augment_corpus(prefix: Any, corpus: Iterable[List[str]]) -> List[List[Tuple[Tuple[Any, int], str]]]:
-                return list(map(augment_tokens, label_and_enumerate(prefix, corpus)))
+                return [augment_tokens(prefix, tokens) for tokens in corpus]
 
-            def augment_tokens(prefix: Any, tokens: Iterable[str]) -> List[Tuple[Tuple[Any, int], str]]:
+            def augment_tokens(prefix: Any, tokens: Iterable[Any]) -> List[Tuple[Tuple[Any, int], Any]]:
                 return [((prefix, token_index), token) for token_index, token in enumerate(tokens)]
-
-            def label_and_enumerate(label: str, iterable: Iterable[Any]) -> Iterable[Tuple[Tuple[str, int], Any]]:
-                return (((label, item_index), item) for item_index, item in enumerate(iterable))
 
             augmented_test_reference_corpus = augment_corpus('test-reference', test_reference_corpus)
             augmented_test_translation_corpus = augment_corpus('test-translation', test_translation_corpus)

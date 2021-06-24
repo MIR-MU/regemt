@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict, Optional, Set
+from typing import List, Tuple, Iterable, Dict, Optional, Set, Any
 import pandas as pd
 from gensim.utils import simple_preprocess
 from tqdm import tqdm
@@ -18,7 +18,7 @@ class Judgements:
         self.scores = scores
 
     def get_tokenized_texts(self, stopwords: Optional[Set] = None,
-                            desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
+                            desc: Optional[str] = None) -> Tuple[List[str], List[str]]:
         if not stopwords:
             stopwords = set()
         corpus = zip(self.references, self.translations)
@@ -29,29 +29,29 @@ class Judgements:
             translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in stopwords]
             yield (reference_words, translation_words)
 
-    def __eq__(self, other: 'Judgements') -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Judgements):
             return NotImplemented
-        return all(
+        return all([
             self.src_texts == other.src_texts,
             self.references == other.references,
             self.translations == other.translations,
             self.scores == other.scores,
-        )
+        ])
 
     def __len__(self):
         return len(self.src_texts)
 
 
 class Metric(abc.ABC):
-    label: str = None
+    label: str = 'None'
 
     @abc.abstractmethod
-    def fit(self, judgements: Judgements):
+    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         pass
 
     @abc.abstractmethod
-    def compute(self, judgements: Judgements) -> List[float]:
+    def compute(self, test_judgements: Judgements) -> List[float]:
         pass
 
 
