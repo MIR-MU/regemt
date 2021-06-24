@@ -22,8 +22,6 @@ class SCM(Metric):
 
     def __init__(self, tgt_lang: str, use_tfidf: bool):
         if tgt_lang == "en":
-            self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-            self.w2v_model.init_sims(replace=True)
             nltk.download('stopwords')
             self.stopwords = stopwords.words('english')
         else:
@@ -35,14 +33,15 @@ class SCM(Metric):
 
     def fit(self, judgements: Judgements):
         self.dictionary = Dictionary([[t.lower() for t in simple_preprocess(refs[0])] for refs in judgements.references])
-        similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model)
+        noncontextual_embeddings = load_facebook_vectors('embeddings/cc.en.300.bin').wv
+        word_similarity_index = WordEmbeddingSimilarityIndex(noncontextual_embeddings)
 
         if self.use_tfidf:
             from gensim.models import TfidfModel
             self.tfidf = TfidfModel(dictionary=self.dictionary)
-            self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, self.dictionary, self.tfidf)
+            self.similarity_matrix = SparseTermSimilarityMatrix(word_similarity_index, self.dictionary, self.tfidf)
         else:
-            self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, self.dictionary)
+            self.similarity_matrix = SparseTermSimilarityMatrix(word_similarity_index, self.dictionary)
 
     def compute(self, judgements: Judgements) -> List[float]:
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
