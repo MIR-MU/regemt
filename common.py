@@ -16,6 +16,16 @@ class Judgements:
         self.translations = translations
         self.scores = scores
 
+    def __eq__(self, other: Judgements) -> bool:
+        if not isinstance(other, Judgements):
+            raise NotImplemented
+        return all(
+            self.src_texts == other.src_texts,
+            self.references == other.references,
+            self.translations == other.translations,
+            self.scores == other.scores,
+        )
+
     def __len__(self):
         return len(self.src_texts)
 
