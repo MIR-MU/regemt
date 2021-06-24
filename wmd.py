@@ -1,12 +1,8 @@
 from typing import List
 
-from gensim.parsing import preprocess_string
-from gensim.utils import simple_preprocess
-from tqdm import tqdm
 from gensim.models.fasttext import load_facebook_vectors
 
 from common import Metric, Judgements
-import gensim.downloader as api
 import nltk
 from nltk.corpus import stopwords
 
@@ -31,12 +27,9 @@ class WMD(Metric):
         pass
 
     def compute(self, judgements: Judgements) -> List[float]:
-        out_scores = []
-        for reference, translation in tqdm(zip(judgements.references, judgements.translations),
-                                           desc="WMD", total=len(judgements)):
-
-            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in self.stopwords]
-            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in self.stopwords]
-
-            out_scores.append(self.w2v_model.wv.wmdistance(reference_words, translation_words))
+        out_scores = [
+            self.w2v_model.wv.wmdistance(reference_words, translation_words)
+            for reference_words, translation_words
+            in judgements.get_tokenized_texts(self.stopwords, desc=self.label)
+        ]
         return out_scores

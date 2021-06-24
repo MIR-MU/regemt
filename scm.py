@@ -1,12 +1,10 @@
+from itertools import chain
 from typing import List
 
-from gensim.corpora import Dictionary, dictionary
-from gensim.utils import simple_preprocess
+from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from nltk.corpus import stopwords
-import gensim.downloader as api
 from gensim.models.fasttext import load_facebook_vectors
-from tqdm import tqdm
 import nltk
 
 from common import Metric, Judgements
@@ -32,7 +30,13 @@ class SCM(Metric):
             self.label = self.label + "_tfidf"
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        self.dictionary = Dictionary([[t.lower() for t in simple_preprocess(refs[0])] for refs in train_judgements.references])
+        tokenized_texts = train_judgements.get_tokenized_texts(self.stopwords)
+        if test_judgements != train_judgements:
+            tokenized_texts = chain(tokenized_texts, test_judgements.get_tokenized_texts(self.stopwords))
+        reference_corpus, translation_corpus = map(list, zip(*tokenized_texts))
+        corpus = reference_corpus + translation_corpus
+
+        self.dictionary = Dictionary(corpus)
         noncontextual_embeddings = load_facebook_vectors('embeddings/cc.en.300.bin').wv
         word_similarity_index = WordEmbeddingSimilarityIndex(noncontextual_embeddings)
 
@@ -46,11 +50,7 @@ class SCM(Metric):
     def compute(self, judgements: Judgements) -> List[float]:
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
         out_scores = []
-        for reference, translation in tqdm(zip(judgements.references, judgements.translations),
-                                           desc="SCM", total=len(judgements)):
-            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in self.stopwords]
-            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in self.stopwords]
-
+        for reference_words, translation_words in judgements.get_tokenized_texts(self.stopwords, desc=self.label):
             if self.use_tfidf:
                 ref_index = self.tfidf[self.dictionary.doc2bow(reference_words)]
                 trans_index = self.tfidf[self.dictionary.doc2bow(translation_words)]

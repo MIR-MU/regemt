@@ -1,7 +1,8 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict
+from typing import List, Tuple, Iterable, Dict, Optional, Set
 import pandas as pd
+from gensim.utils import simple_preprocess
 from tqdm import tqdm
 
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
@@ -16,9 +17,21 @@ class Judgements:
         self.translations = translations
         self.scores = scores
 
-    def __eq__(self, other: Judgements) -> bool:
+    def get_tokenized_texts(self, stopwords: Optional[Set] = None,
+                            desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
+        if not stopwords:
+            stopwords = set()
+        corpus = zip(self.references, self.translations)
+        if desc:
+            corpus = tqdm(corpus, desc=desc, total=len(self))
+        for reference, translation in corpus:
+            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in stopwords]
+            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in stopwords]
+            yield (reference_words, translation_words)
+
+    def __eq__(self, other: 'Judgements') -> bool:
         if not isinstance(other, Judgements):
-            raise NotImplemented
+            return NotImplemented
         return all(
             self.src_texts == other.src_texts,
             self.references == other.references,
@@ -93,7 +106,7 @@ class Evaluator:
                     break
         else:
             split_file_template = os.path.join(self.data_dir, TRAIN_DATASET_FILE_TEMPLATE if split == "train"
-                                                              else TEST_DATASET_FILE_TEMPLATE)
+                                               else TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
             references = [[ref] for ref in self._load_file(split_file_template % ("reference", self.lang_pair))]
             translations = self._load_file(split_file_template % ("mt-system", self.lang_pair))
@@ -103,7 +116,7 @@ class Evaluator:
 
     def _load_file(self, fpath: str) -> List[str]:
         with open(fpath) as f:
-            return [l.strip() for l in f.readlines()]
+            return [line.strip() for line in f.readlines()]
 
     def evaluate(self) -> Dict[str, List[float]]:
         report = {}

@@ -18,6 +18,6 @@ class BERTScore(Metric):
     def compute(self, judgements: Judgements) -> List[float]:
         f_scores = [self.scorer.score([trans], [ref])[-1][0]
                     for trans, ref in tqdm(zip(judgements.translations, judgements.references),
-                                           desc="BERTScore", total=len(judgements))]
+                                           desc=self.label, total=len(judgements))]
 
         return f_scores
