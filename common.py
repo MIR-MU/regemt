@@ -57,8 +57,9 @@ class Evaluator:
         self.psqm = psqm
 
         train_judgements = self.load_judgements("train")
+        test_judgements = self.load_judgements("test")
         for metric in self.metrics:
-            metric.fit(train_judgements)
+            metric.fit(train_judgements, test_judgements)
 
     def load_judgements(self, split: str = "train", firstn: int = 10000) -> Judgements:
         if self.psqm:

@@ -27,8 +27,7 @@ class WMD(Metric):
         else:
             raise ValueError(tgt_lang)
 
-    def fit(self, judgements: Judgements):
-        # TODO: maybe fit tf-idf?
+    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         pass
 
     def compute(self, judgements: Judgements) -> List[float]:

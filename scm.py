@@ -31,8 +31,8 @@ class SCM(Metric):
         if use_tfidf:
             self.label = self.label + "_tfidf"
 
-    def fit(self, judgements: Judgements):
-        self.dictionary = Dictionary([[t.lower() for t in simple_preprocess(refs[0])] for refs in judgements.references])
+    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
+        self.dictionary = Dictionary([[t.lower() for t in simple_preprocess(refs[0])] for refs in train_judgements.references])
         noncontextual_embeddings = load_facebook_vectors('embeddings/cc.en.300.bin').wv
         word_similarity_index = WordEmbeddingSimilarityIndex(noncontextual_embeddings)
 
