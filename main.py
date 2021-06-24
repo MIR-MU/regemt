@@ -14,8 +14,10 @@ if __name__ == '__main__':
         BLEU(),
         METEOR(),
         # BERTScore(tgt_lang="en"),
-        # SCM(tgt_lang="en", use_tfidf=True),
-        # SCM(tgt_lang="en", use_tfidf=False),
+        # SCM(tgt_lang="en", use_tfidf=True, use_contextual=False),
+        # SCM(tgt_lang="en", use_tfidf=False, use_contextual=False),
+        # SCM(tgt_lang="en", use_tfidf=True, use_contextual=True),
+        # SCM(tgt_lang="en", use_tfidf=False, use_contextual=True),
         # WMD(tgt_lang="en"),
     ]
     correlations = {m.label: {} for m in metrics}

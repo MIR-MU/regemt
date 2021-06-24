@@ -1,11 +1,14 @@
-from itertools import chain
-from typing import List
+from typing import List, Any, Iterable, Tuple
+from itertools import product
 
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from nltk.corpus import stopwords
 from gensim.models.fasttext import load_facebook_vectors
+from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 import nltk
+from tqdm import tqdm
+from scipy.sparse import dok_matrix, csr_matrix
 
 from common import Metric, Judgements
 
@@ -18,7 +21,7 @@ class SCM(Metric):
     dictionary = None
     tfidf = None
 
-    def __init__(self, tgt_lang: str, use_tfidf: bool):
+    def __init__(self, tgt_lang: str, use_tfidf: bool, use_contextual: bool):
         if tgt_lang == "en":
             nltk.download('stopwords')
             self.stopwords = stopwords.words('english')
@@ -26,19 +29,48 @@ class SCM(Metric):
             raise ValueError(tgt_lang)
 
         self.use_tfidf = use_tfidf
+        self.use_contextual = use_contextual
+
         if use_tfidf:
             self.label = self.label + "_tfidf"
+        if use_contextual:
+            self.label = self.label + "_contextual"
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        tokenized_texts = train_judgements.get_tokenized_texts(self.stopwords)
-        if test_judgements != train_judgements:
-            tokenized_texts = chain(tokenized_texts, test_judgements.get_tokenized_texts(self.stopwords))
-        reference_corpus, translation_corpus = map(list, zip(*tokenized_texts))
-        corpus = reference_corpus + translation_corpus
+        test_reference_corpus, test_translation_corpus = map(list, zip(*test_judgements.get_tokenized_texts(self.stopwords)))
 
-        self.dictionary = Dictionary(corpus)
-        noncontextual_embeddings = load_facebook_vectors('embeddings/cc.en.300.bin').wv
-        word_similarity_index = WordEmbeddingSimilarityIndex(noncontextual_embeddings)
+        if self.use_contextual:
+
+            def augment_corpus(prefix: Any, corpus: Iterable[List[str]]) -> List[List[Tuple[Tuple[Any, int], str]]]:
+                return list(map(augment_tokens, label_and_enumerate(prefix, corpus)))
+
+            def augment_tokens(prefix: Any, tokens: Iterable[str]) -> List[Tuple[Tuple[Any, int], str]]:
+                return [((prefix, token_index), token) for token_index, token in enumerate(tokens)]
+
+            def label_and_enumerate(label: str, iterable: Iterable[Any]) -> Iterable[Tuple[Tuple[str, int], Any]]:
+                return (((label, item_index), item) for item_index, item in enumerate(iterable))
+
+            augmented_test_reference_corpus = augment_corpus('test-reference', test_reference_corpus)
+            augmented_test_translation_corpus = augment_corpus('test-translation', test_translation_corpus)
+
+            self.zipped_test_corpus = list(zip(augmented_test_reference_corpus, augmented_test_translation_corpus))
+            corpus = augmented_test_reference_corpus + augmented_test_translation_corpus
+        else:
+            self.zipped_test_corpus = list(zip(test_reference_corpus, test_translation_corpus))
+            corpus = test_reference_corpus + test_translation_corpus
+
+        self.dictionary = Dictionary(corpus)  # We only use only words from test corpus, since we don't care about words from train corpus
+
+        if self.use_contextual:
+            embeddings = KeyedVectors(CONTEXTUAL_VECTOR_SIZE, len(self.dictionary), dtype=CONTEXTUAL_VECTOR_DTYPE)  # FIXME: Define the constants
+            for augmented_tokens in tqdm(corpus, desc=f'{self.label}: construct contextual embeddings'):
+                for token_index, token in enumerate(augmented_tokens):
+                    weights = get_contextual_embedding(augmented_tokens, token_index)  # FIXME: Define get_contextual_embedding()
+                    _add_word_to_kv(embeddings, None, token, weights, len(self.dictionary))
+        else:
+            embeddings = load_facebook_vectors('embeddings/cc.en.300.bin').wv
+
+        word_similarity_index = WordEmbeddingSimilarityIndex(embeddings)
 
         if self.use_tfidf:
             from gensim.models import TfidfModel
@@ -47,10 +79,36 @@ class SCM(Metric):
         else:
             self.similarity_matrix = SparseTermSimilarityMatrix(word_similarity_index, self.dictionary)
 
+        if self.use_contextual:
+
+            def get_matching_tokens(augmented_tokens: Iterable[Tuple[Any, Any]],
+                                    searched_token: Any) -> Iterable[Tuple[Any, Any]]:
+                for augmented_token in augmented_tokens:
+                    if unaugment_token(augmented_token) == searched_token:
+                        yield augmented_token
+
+            def unaugment_token(augmented_token: Tuple[Any, Any]) -> Any:
+                prefix, token = augmented_token
+                return token
+
+            matrix = dok_matrix(self.similarity_matrix.matrix)  # Convert to a sparse matrix type that allows modification
+
+            for augmented_reference_tokens, augmented_translation_tokens in tqdm(self.zipped_test_corpus,
+                                                                                 desc=f'{self.label}: patch similarity matrix'):
+                shared_tokens = set(map(unaugment_token, augmented_reference_tokens + augmented_translation_tokens))
+                for shared_token in shared_tokens:
+                    matching_augmented_reference_tokens = get_matching_tokens(augmented_reference_tokens, shared_token)
+                    matching_augmented_translation_tokens = get_matching_tokens(augmented_translation_tokens, shared_token)
+                    all_pairs = product(matching_augmented_reference_tokens, matching_augmented_translation_tokens)
+                    for matching_augmented_token_pair in all_pairs:
+                        matrix[matching_augmented_token_pair] = 1.0
+
+            self.similarity_matrix.matrix = csr_matrix(matrix)  # Convert back to a sparse matrix type that allows dot products
+
     def compute(self, judgements: Judgements) -> List[float]:
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
         out_scores = []
-        for reference_words, translation_words in judgements.get_tokenized_texts(self.stopwords, desc=self.label):
+        for reference_words, translation_words in tqdm(self.zipped_test_corpus, desc=self.label):
             if self.use_tfidf:
                 ref_index = self.tfidf[self.dictionary.doc2bow(reference_words)]
                 trans_index = self.tfidf[self.dictionary.doc2bow(translation_words)]
