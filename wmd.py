@@ -27,9 +27,7 @@ class WMD(Metric):
         pass
 
     def compute(self, judgements: Judgements) -> List[float]:
-        out_scores = [
-            self.w2v_model.wv.wmdistance(reference_words, translation_words)
-            for reference_words, translation_words
-            in judgements.get_tokenized_texts(self.stopwords, desc=self.label)
-        ]
+        out_scores = [self.w2v_model.wmdistance(reference_words, translation_words)
+                      for reference_words, translation_words
+                      in judgements.get_tokenized_texts(self.stopwords, desc=self.label)]
         return out_scores
