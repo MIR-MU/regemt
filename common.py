@@ -88,7 +88,7 @@ class Evaluator:
     langs = ["cs-en", "de-en", "fi-en", "ru-en"]
     langs_psqm = ["zh-en"]
 
-    def __init__(self, data_dir: str, lang_pair: Tuple[str, str], metrics: List[Metric], psqm: bool = False):
+    def __init__(self, data_dir: str, lang_pair: str, metrics: List[Metric], psqm: bool = False):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
