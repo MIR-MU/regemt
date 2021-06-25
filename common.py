@@ -83,9 +83,6 @@ class AugmentedCorpus:
         return augmented_corpus
 
 
-MQM_RATING_MAPPING = {}
-
-
 class Evaluator:
 
     langs = ["cs-en", "de-en", "fi-en", "ru-en"]

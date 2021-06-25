@@ -33,6 +33,8 @@ class ContextualSCM(Metric):
             raise ValueError(tgt_lang)
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
+        assert self.embedder is not None
+
         test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
         test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
 
@@ -90,6 +92,9 @@ class ContextualSCM(Metric):
         self.similarity_matrix.matrix = csr_matrix(matrix)
 
     def compute(self, judgements: Judgements) -> List[float]:
+        if self.dictionary is None or self.similarity_matrix is None:
+            raise ValueError('You need to run fit() first')
+
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
         out_scores = []
         for reference_words, translation_words in tqdm(self.zipped_test_corpus, desc=self.label):
@@ -133,6 +138,10 @@ class SCM(Metric):
             self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, self.dictionary)
 
     def compute(self, judgements: Judgements, threshold_importance: float = 0) -> List[float]:
+        if self.dictionary is None or self.similarity_matrix is None:
+            raise ValueError('You need to run fit() first')
+        assert self.stopwords is not None
+
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
         out_scores = []
         for reference, translation in tqdm(zip(judgements.references, judgements.translations),
@@ -141,6 +150,8 @@ class SCM(Metric):
             translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in self.stopwords]
 
             if self.use_tfidf:
+                assert self.tfidf is not None
+
                 ref_index = self.tfidf[self.dictionary.doc2bow(reference_words)]
                 trans_index = self.tfidf[self.dictionary.doc2bow(translation_words)]
 
