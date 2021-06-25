@@ -18,7 +18,7 @@ class Judgements:
         self.scores = scores
 
     def get_tokenized_texts(self, stopwords: Optional[Set] = None,
-                            desc: Optional[str] = None) -> Tuple[List[str], List[str]]:
+                            desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
         if not stopwords:
             stopwords = set()
         corpus = zip(self.references, self.translations)
