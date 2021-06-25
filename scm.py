@@ -63,13 +63,13 @@ class ContextualSCM(Metric):
 
         self.similarity_matrix = SparseTermSimilarityMatrix(word_similarity_index, self.dictionary)
 
-        def get_matching_tokens(augmented_tokens: Iterable[Tuple[Any, str]],
-                                searched_token: str) -> Iterable[Tuple[Any, str]]:
+        def get_matching_tokens(augmented_tokens: Iterable[str],
+                                searched_token: str) -> Iterable[str]:
             for augmented_token in augmented_tokens:
                 if unaugment_token(augmented_token) == searched_token:
                     yield augmented_token
 
-        def unaugment_token(augmented_token: Tuple[Any, str]) -> str:
+        def unaugment_token(augmented_token: str) -> str:
             return augmented_token.split()[-1]
 
         # Convert to a sparse matrix type that allows modification
