@@ -3,7 +3,7 @@ from scipy.stats import spearmanr
 from bertscore import BERTScore  # noqa: F401
 from conventional_metrics import BLEU, METEOR
 from scm import SCM, ContextualSCM  # noqa: F401
-from wmd import WMD  # noqa: F401
+from wmd import WMD, ContextualWMD  # noqa: F401
 from common import Evaluator
 import pandas as pd
 
@@ -18,6 +18,7 @@ if __name__ == '__main__':
         # SCM(tgt_lang="en", use_tfidf=False),
         SCM(tgt_lang="en", use_tfidf=True),
         # SCM(tgt_lang="en", use_tfidf=False),
+        # ContextualWMD(tgt_lang="en"),
         # WMD(tgt_lang="en"),
     ]
     correlations = {m.label: {} for m in metrics}

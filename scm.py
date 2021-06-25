@@ -1,7 +1,6 @@
 from typing import List
 from itertools import product, chain
 
-import numpy as np
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.utils import simple_preprocess
@@ -51,7 +50,7 @@ class ContextualSCM(Metric):
         # We only use words from test corpus, since we don't care about words from train corpus
         self.dictionary = Dictionary(corpus)
 
-        embeddings = KeyedVectors(self.embedder.vector_size, len(self.dictionary), dtype=np.float)
+        embeddings = KeyedVectors(self.embedder.vector_size, len(self.dictionary), dtype=float)
         for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, corpus_embeddings),
                                                         desc=f'{self.label}: construct contextual embeddings'):
             for token_index, (token, token_embedding) in enumerate(zip(augmented_tokens, tokens_embeddings)):
