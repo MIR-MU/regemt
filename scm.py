@@ -3,7 +3,6 @@ from itertools import product, chain
 
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
-from gensim.utils import simple_preprocess
 from nltk.corpus import stopwords
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
@@ -115,10 +114,12 @@ class SCM(Metric):
             self.label = self.label + "_tfidf"
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        self.dictionary = Dictionary([
-            [t.lower() for t in simple_preprocess(refs[0])]
-            for refs in test_judgements.references
-        ])
+        reference_corpus, translation_corpus = map(
+            list, zip(*test_judgements.get_tokenized_texts(self.stopwords, desc=self.label)))
+        corpus = reference_corpus + translation_corpus
+
+        # We only use words from test corpus, since we don't care about words from train corpus
+        self.dictionary = Dictionary(corpus)
         similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model)
 
         if self.use_tfidf:
@@ -128,28 +129,14 @@ class SCM(Metric):
         else:
             self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, self.dictionary)
 
-    def compute(self, judgements: Judgements, threshold_importance: float = 0) -> List[float]:
+    def compute(self, judgements: Judgements) -> List[float]:
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
         out_scores = []
-        for reference, translation in tqdm(zip(judgements.references, judgements.translations),
-                                           desc="SCM", total=len(judgements)):
-            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in self.stopwords]
-            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in self.stopwords]
-
+        for reference_words, translation_words in judgements.get_tokenized_texts(self.stopwords, desc=self.label):
+            ref_index = self.dictionary.doc2bow(reference_words)
+            trans_index = self.dictionary.doc2bow(translation_words)
             if self.use_tfidf:
-                ref_index = self.tfidf[self.dictionary.doc2bow(reference_words)]
-                trans_index = self.tfidf[self.dictionary.doc2bow(translation_words)]
-
-                if threshold_importance:
-                    # take only the top 50% most-important terms
-                    safe_sum = len(ref_index + trans_index) if len(ref_index + trans_index) > 0 else 1
-                    threshold_tfidf = sum([val for idx, val in ref_index + trans_index]) / safe_sum
-                    ref_index = [(idx, val) for idx, val in ref_index if val >= threshold_tfidf]
-                    trans_index = [(idx, val) for idx, val in trans_index if val >= threshold_tfidf]
-            else:
-                ref_index = self.dictionary.doc2bow(reference_words)
-                trans_index = self.dictionary.doc2bow(translation_words)
-
+                ref_index = self.tfidf[ref_index]
+                trans_index = self.tfidf[trans_index]
             out_scores.append(self.similarity_matrix.inner_product(ref_index, trans_index, normalized=(True, True)))
-
         return out_scores
