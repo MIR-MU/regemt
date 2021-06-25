@@ -27,7 +27,8 @@ if __name__ == '__main__':
 
     for lang_pair in [pair for pair in langs if pair.split("-")[-1] == "en"]:
         print("Evaluating lang pair %s" % lang_pair)
-        evaluator = Evaluator("data_dir", lang_pair, metrics, psqm=USE_PSQM_JUDGEMENTS)
+        source_language, target_language = lang_pair.split("-")
+        evaluator = Evaluator("data_dir", (source_language, target_language), metrics, psqm=USE_PSQM_JUDGEMENTS)
         report = evaluator.evaluate()
         print(report)
         human_judgements = report["human"]

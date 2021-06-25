@@ -32,6 +32,8 @@ class ContextualSCM(Metric):
         else:
             raise ValueError(tgt_lang)
 
+        self.zipped_test_corpus = [], []
+
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         assert self.embedder is not None
 
