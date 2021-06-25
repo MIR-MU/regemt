@@ -44,7 +44,7 @@ class SCM(Metric):
             def augment_corpus(prefix: Any, corpus: Iterable[List[str]]) -> List[List[Tuple[Tuple[Any, int], str]]]:
                 return [augment_tokens(prefix, tokens) for tokens in corpus]
 
-            def augment_tokens(prefix: Any, tokens: Iterable[Any]) -> List[Tuple[Tuple[Any, int], Any]]:
+            def augment_tokens(prefix: Any, tokens: Iterable[str]) -> List[Tuple[Tuple[Any, int], str]]:
                 return [((prefix, token_index), token) for token_index, token in enumerate(tokens)]
 
             augmented_test_reference_corpus = augment_corpus('test-reference', test_reference_corpus)
@@ -78,13 +78,13 @@ class SCM(Metric):
 
         if self.use_contextual:
 
-            def get_matching_tokens(augmented_tokens: Iterable[Tuple[Any, Any]],
-                                    searched_token: Any) -> Iterable[Tuple[Any, Any]]:
+            def get_matching_tokens(augmented_tokens: Iterable[Tuple[Any, str]],
+                                    searched_token: str) -> Iterable[Tuple[Any, str]]:
                 for augmented_token in augmented_tokens:
                     if unaugment_token(augmented_token) == searched_token:
                         yield augmented_token
 
-            def unaugment_token(augmented_token: Tuple[Any, Any]) -> Any:
+            def unaugment_token(augmented_token: Tuple[Any, str]) -> str:
                 prefix, token = augmented_token
                 return token
 
