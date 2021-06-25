@@ -70,7 +70,7 @@ class ContextualSCM(Metric):
                     yield augmented_token
 
         def unaugment_token(augmented_token: Tuple[Any, str]) -> str:
-            return augmented_token.split()[-1:]
+            return augmented_token.split()[-1]
 
         # Convert to a sparse matrix type that allows modification
         matrix = dok_matrix(self.similarity_matrix.matrix)
