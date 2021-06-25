@@ -55,6 +55,34 @@ class Metric(abc.ABC):
         pass
 
 
+class AugmentedCorpus:
+    def __init__(self, prefix: str, corpus: Iterable[List[str]]):
+        if ' ' in prefix:
+            raise ValueError(f'Prefix {prefix} contains spaces')
+        self.prefix = prefix
+        self.corpus: List[List[str]] = self._augment_corpus(corpus)
+
+    def get_matching_tokens(self, augmented_tokens: Iterable[str],
+                            searched_token: str) -> Iterable[str]:
+        for augmented_token in augmented_tokens:
+            if self.unaugment_token(augmented_token) == searched_token:
+                yield augmented_token
+
+    def unaugment_token(self, augmented_token: str) -> str:
+        prefix, text_index, token_index, token = augmented_token.split(' ', maxsplit=3)
+        return token
+
+    def _augment_corpus(self, corpus: Iterable[List[str]]) -> List[List[str]]:
+        augmented_corpus = [
+            [
+                f'{self.prefix} {text_index} {token_index} {token}'
+                for token_index, token in enumerate(text)
+            ]
+            for text_index, text in enumerate(corpus)
+        ]
+        return augmented_corpus
+
+
 MQM_RATING_MAPPING = {}
 
 
