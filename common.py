@@ -27,7 +27,7 @@ class Judgements:
         for reference, translation in corpus:
             reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in stopwords]
             translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in stopwords]
-            yield (reference_words, translation_words)
+            yield reference_words, translation_words
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Judgements):
@@ -105,7 +105,8 @@ class Evaluator:
                 if len(src_texts) >= firstn:
                     break
         else:
-            split_file_template = os.path.join(self.data_dir, TRAIN_DATASET_FILE_TEMPLATE if split == "train"
+            # TODO: note that train and test datasets are the same now
+            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
                                                else TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
             references = [[ref] for ref in self._load_file(split_file_template % ("reference", self.lang_pair))]

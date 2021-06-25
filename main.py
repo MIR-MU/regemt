@@ -2,7 +2,7 @@ from scipy.stats import spearmanr
 
 from bertscore import BERTScore
 from conventional_metrics import BLEU, METEOR
-from scm import SCM
+from scm import SCM, ContextualSCM
 from wmd import WMD
 from common import Evaluator
 import pandas as pd
@@ -14,10 +14,10 @@ if __name__ == '__main__':
         BLEU(),
         METEOR(),
         # BERTScore(tgt_lang="en"),
-        # SCM(tgt_lang="en", use_tfidf=True, use_contextual=False),
-        # SCM(tgt_lang="en", use_tfidf=False, use_contextual=False),
-        # SCM(tgt_lang="en", use_tfidf=True, use_contextual=True),
-        # SCM(tgt_lang="en", use_tfidf=False, use_contextual=True),
+        ContextualSCM(tgt_lang="en"),
+        # SCM(tgt_lang="en", use_tfidf=False),
+        SCM(tgt_lang="en", use_tfidf=True),
+        # SCM(tgt_lang="en", use_tfidf=False),
         # WMD(tgt_lang="en"),
     ]
     correlations = {m.label: {} for m in metrics}
