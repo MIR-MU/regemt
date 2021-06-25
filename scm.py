@@ -129,7 +129,10 @@ class SCM(Metric):
             self.label = self.label + "_tfidf"
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        self.dictionary = Dictionary([[t.lower() for t in simple_preprocess(refs[0])] for refs in test_judgements.references])
+        self.dictionary = Dictionary([
+            [t.lower() for t in simple_preprocess(refs[0])]
+            for refs in test_judgements.references
+        ])
         similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model)
 
         if self.use_tfidf:
