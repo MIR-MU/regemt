@@ -1,4 +1,4 @@
-from typing import List, Any, Iterable, Tuple
+from typing import List, Any, Iterable
 from itertools import product, chain
 
 import numpy as np
