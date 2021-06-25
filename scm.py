@@ -44,7 +44,7 @@ class SCM(Metric):
             def augment_corpus(prefix: Any, corpus: Iterable[List[str]]) -> List[List[Tuple[Any, str]]]:
                 return [augment_tokens(prefix, tokens) for tokens in corpus]
 
-            def augment_tokens(prefix: Any, tokens: Iterable[str]) -> List[Tuple[Tuple[Any, int], str]]:
+            def augment_tokens(prefix: Any, tokens: Iterable[str]) -> List[Tuple[Any, str]]:
                 return [((prefix, token_index), token) for token_index, token in enumerate(tokens)]
 
             augmented_test_reference_corpus = augment_corpus('test-reference', test_reference_corpus)
