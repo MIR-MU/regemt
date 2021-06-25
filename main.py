@@ -1,9 +1,9 @@
 from scipy.stats import spearmanr
 
-from bertscore import BERTScore
+from bertscore import BERTScore  # noqa: F401
 from conventional_metrics import BLEU, METEOR
-from scm import SCM, ContextualSCM
-from wmd import WMD
+from scm import SCM, ContextualSCM  # noqa: F401
+from wmd import WMD  # noqa: F401
 from common import Evaluator
 import pandas as pd
 
