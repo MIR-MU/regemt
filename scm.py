@@ -4,6 +4,7 @@ from itertools import product, chain
 import numpy as np
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
+from gensim.utils import simple_preprocess
 from nltk.corpus import stopwords
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
@@ -69,8 +70,7 @@ class ContextualSCM(Metric):
                     yield augmented_token
 
         def unaugment_token(augmented_token: Tuple[Any, str]) -> str:
-            prefix, index, token = augmented_token.split()
-            return token
+            return augmented_token.split()[-1:]
 
         # Convert to a sparse matrix type that allows modification
         matrix = dok_matrix(self.similarity_matrix.matrix)
@@ -118,9 +118,11 @@ class SCM(Metric):
             raise ValueError(tgt_lang)
 
         self.use_tfidf = use_tfidf
+        if use_tfidf:
+            self.label = self.label + "_tfidf"
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        self.dictionary = Dictionary([ref for ref, translation in test_judgements.get_tokenized_texts(self.stopwords)])
+        self.dictionary = Dictionary([[t.lower() for t in simple_preprocess(refs[0])] for refs in test_judgements.references])
         similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model)
 
         if self.use_tfidf:
@@ -133,8 +135,11 @@ class SCM(Metric):
     def compute(self, judgements: Judgements, threshold_importance: float = 0) -> List[float]:
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
         out_scores = []
-        for reference_words, translation_words in tqdm(judgements.get_tokenized_texts(self.stopwords),
-                                                       desc="SCM", total=len(judgements)):
+        for reference, translation in tqdm(zip(judgements.references, judgements.translations),
+                                           desc="SCM", total=len(judgements)):
+            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in self.stopwords]
+            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in self.stopwords]
+
             if self.use_tfidf:
                 ref_index = self.tfidf[self.dictionary.doc2bow(reference_words)]
                 trans_index = self.tfidf[self.dictionary.doc2bow(translation_words)]
