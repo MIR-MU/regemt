@@ -42,7 +42,7 @@ class SCM(Metric):
         if self.use_contextual:
 
             def augment_corpus(prefix: Any, corpus: Iterable[List[str]]) -> List[List[Tuple[Any, str]]]:
-                return [augment_tokens(prefix, tokens) for tokens in corpus]
+                return [augment_tokens((prefix, tokens_index), tokens) for tokens_index, tokens in enumerate(corpus)]
 
             def augment_tokens(prefix: Any, tokens: Iterable[str]) -> List[Tuple[Any, str]]:
                 return [((prefix, token_index), token) for token_index, token in enumerate(tokens)]
