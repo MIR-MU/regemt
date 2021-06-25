@@ -98,7 +98,8 @@ class SCM(Metric):
                     matching_augmented_translation_tokens = get_matching_tokens(augmented_translation_tokens, shared_token)
                     all_pairs = product(matching_augmented_reference_tokens, matching_augmented_translation_tokens)
                     for matching_augmented_token_pair in all_pairs:
-                        matrix[matching_augmented_token_pair] = 1.0
+                        indexes = tuple(map(lambda augmented_token: self.dictionary[augmented_token]))
+                        matrix[indexes] = 1.0
 
             self.similarity_matrix.matrix = csr_matrix(matrix)  # Convert back to a sparse matrix type that allows dot products
 
