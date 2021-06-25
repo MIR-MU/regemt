@@ -1,4 +1,4 @@
-from typing import List, Any, Iterable
+from typing import List
 from itertools import product, chain
 
 import numpy as np
@@ -12,7 +12,7 @@ import nltk
 from tqdm import tqdm
 from scipy.sparse import dok_matrix, csr_matrix
 
-from common import Metric, Judgements
+from common import Metric, Judgements, AugmentedCorpus
 from embedder import ContextualEmbedder
 
 
@@ -40,17 +40,14 @@ class ContextualSCM(Metric):
         test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
         test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
 
-        def augment_corpus(prefix: Any, corpus: Iterable[List[str]]) -> List[List[str]]:
-            return [augment_tokens(prefix, tokens) for tokens_index, tokens in enumerate(corpus)]
+        augmented_test_reference_corpus = AugmentedCorpus('test-reference', test_ref_corpus)
+        augmented_test_translation_corpus = AugmentedCorpus('test-translation', test_trans_corpus)
 
-        def augment_tokens(prefix: Any, tokens: Iterable[str]) -> List[str]:
-            return [" ".join([prefix, str(token_index), token]) for token_index, token in enumerate(tokens)]
-
-        augmented_test_reference_corpus = augment_corpus('test-reference', test_ref_corpus)
-        augmented_test_translation_corpus = augment_corpus('test-translation', test_trans_corpus)
-
-        self.zipped_test_corpus = list(zip(augmented_test_reference_corpus, augmented_test_translation_corpus))
-        corpus = augmented_test_reference_corpus + augmented_test_translation_corpus
+        self.zipped_test_corpus = list(zip(
+            augmented_test_reference_corpus.corpus,
+            augmented_test_translation_corpus.corpus,
+        ))
+        corpus = augmented_test_reference_corpus.corpus + augmented_test_translation_corpus.corpus
         # different dims, we can not use np (can be aligned in precedence)
         corpus_embeddings = chain(test_ref_embs, test_trans_embs)
 
@@ -67,24 +64,20 @@ class ContextualSCM(Metric):
 
         self.similarity_matrix = SparseTermSimilarityMatrix(word_similarity_index, self.dictionary)
 
-        def get_matching_tokens(augmented_tokens: Iterable[str],
-                                searched_token: str) -> Iterable[str]:
-            for augmented_token in augmented_tokens:
-                if unaugment_token(augmented_token) == searched_token:
-                    yield augmented_token
-
-        def unaugment_token(augmented_token: str) -> str:
-            return augmented_token.split()[-1]
-
         # Convert to a sparse matrix type that allows modification
         matrix = dok_matrix(self.similarity_matrix.matrix)
 
         for augm_ref_tokens, augm_trans_tokens in tqdm(self.zipped_test_corpus,
                                                        desc=f'{self.label}: patch similarity matrix'):
-            shared_tokens = set(map(unaugment_token, augm_ref_tokens + augm_trans_tokens))
+            shared_tokens = set(chain(
+                map(augmented_test_reference_corpus.unaugment_token, augm_ref_tokens),
+                map(augmented_test_translation_corpus.unaugment_token, augm_trans_tokens),
+            ))
             for shared_token in shared_tokens:
-                matching_augm_ref_tokens = get_matching_tokens(augm_ref_tokens, shared_token)
-                matching_augm_trans_tokens = get_matching_tokens(augm_trans_tokens, shared_token)
+                matching_augm_ref_tokens = augmented_test_reference_corpus.get_matching_tokens(
+                    augm_ref_tokens, shared_token)
+                matching_augm_trans_tokens = augmented_test_reference_corpus.get_matching_tokens(
+                    augm_trans_tokens, shared_token)
                 all_pairs = product(matching_augm_ref_tokens, matching_augm_trans_tokens)
                 for token_pair in all_pairs:
                     matching_indexes = tuple(self.dictionary.token2id[augm_token] for augm_token in token_pair)
