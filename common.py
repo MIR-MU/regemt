@@ -1,7 +1,8 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict
+from typing import List, Tuple, Iterable, Dict, Optional, Set, Any
 import pandas as pd
+from gensim.utils import simple_preprocess
 from tqdm import tqdm
 
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
@@ -16,23 +17,70 @@ class Judgements:
         self.translations = translations
         self.scores = scores
 
+    def get_tokenized_texts(self, stopwords: Optional[Set] = None,
+                            desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
+        if not stopwords:
+            stopwords = set()
+        corpus = zip(self.references, self.translations)
+        if desc:
+            corpus = tqdm(corpus, desc=desc, total=len(self))
+        for reference, translation in corpus:
+            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in stopwords]
+            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in stopwords]
+            yield reference_words, translation_words
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Judgements):
+            return NotImplemented
+        return all([
+            self.src_texts == other.src_texts,
+            self.references == other.references,
+            self.translations == other.translations,
+            self.scores == other.scores,
+        ])
+
     def __len__(self):
         return len(self.src_texts)
 
 
 class Metric(abc.ABC):
-    label: str = None
+    label: str = 'None'
 
     @abc.abstractmethod
-    def fit(self, judgements: Judgements):
+    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         pass
 
     @abc.abstractmethod
-    def compute(self, judgements: Judgements) -> List[float]:
+    def compute(self, test_judgements: Judgements) -> List[float]:
         pass
 
 
-MQM_RATING_MAPPING = {}
+class AugmentedCorpus:
+    def __init__(self, prefix: str, corpus: Iterable[List[str]]):
+        if ' ' in prefix:
+            raise ValueError(f'Prefix {prefix} contains spaces')
+        self.prefix = prefix
+        self.corpus: List[List[str]] = self._augment_corpus(corpus)
+
+    def get_matching_tokens(self, augmented_tokens: Iterable[str],
+                            searched_token: str) -> Iterable[str]:
+        for augmented_token in augmented_tokens:
+            if self.unaugment_token(augmented_token) == searched_token:
+                yield augmented_token
+
+    def unaugment_token(self, augmented_token: str) -> str:
+        prefix, text_index, token_index, token = augmented_token.split(' ', maxsplit=3)
+        return token
+
+    def _augment_corpus(self, corpus: Iterable[List[str]]) -> List[List[str]]:
+        augmented_corpus = [
+            [
+                f'{self.prefix} {text_index} {token_index} {token}'
+                for token_index, token in enumerate(text)
+            ]
+            for text_index, text in enumerate(corpus)
+        ]
+        return augmented_corpus
 
 
 class Evaluator:
@@ -40,15 +88,16 @@ class Evaluator:
     langs = ["cs-en", "de-en", "fi-en", "ru-en"]
     langs_psqm = ["zh-en"]
 
-    def __init__(self, data_dir: str, lang_pair: Tuple[str, str], metrics: List[Metric], psqm: bool = False):
+    def __init__(self, data_dir: str, lang_pair: str, metrics: List[Metric], psqm: bool = False):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
         self.psqm = psqm
 
         train_judgements = self.load_judgements("train")
+        test_judgements = self.load_judgements("test")
         for metric in self.metrics:
-            metric.fit(train_judgements)
+            metric.fit(train_judgements, test_judgements)
 
     def load_judgements(self, split: str = "train", firstn: int = 10000) -> Judgements:
         if self.psqm:
@@ -81,8 +130,9 @@ class Evaluator:
                 if len(src_texts) >= firstn:
                     break
         else:
-            split_file_template = os.path.join(self.data_dir, TRAIN_DATASET_FILE_TEMPLATE if split == "train"
-                                                              else TEST_DATASET_FILE_TEMPLATE)
+            # TODO: note that train and test datasets are the same now
+            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
+                                               else TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
             references = [[ref] for ref in self._load_file(split_file_template % ("reference", self.lang_pair))]
             translations = self._load_file(split_file_template % ("mt-system", self.lang_pair))
@@ -92,7 +142,7 @@ class Evaluator:
 
     def _load_file(self, fpath: str) -> List[str]:
         with open(fpath) as f:
-            return [l.strip() for l in f.readlines()]
+            return [line.strip() for line in f.readlines()]
 
     def evaluate(self) -> Dict[str, List[float]]:
         report = {}

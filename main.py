@@ -1,21 +1,24 @@
 from scipy.stats import spearmanr
 
-from bertscore import BERTScore
+from bertscore import BERTScore  # noqa: F401
 from conventional_metrics import BLEU, METEOR
-from scm import SCM
-from wmd import WMD
+from scm import SCM, ContextualSCM  # noqa: F401
+from wmd import WMD, ContextualWMD  # noqa: F401
 from common import Evaluator
 import pandas as pd
 
 if __name__ == '__main__':
-    USE_PSQM_JUDGEMENTS = True
+    USE_PSQM_JUDGEMENTS = False
 
     metrics = [
         BLEU(),
         METEOR(),
         # BERTScore(tgt_lang="en"),
-        # SCM(tgt_lang="en", use_tfidf=True),
+        # ContextualSCM(tgt_lang="en"),
         # SCM(tgt_lang="en", use_tfidf=False),
+        SCM(tgt_lang="en", use_tfidf=True),
+        # SCM(tgt_lang="en", use_tfidf=False),
+        # ContextualWMD(tgt_lang="en"),
         # WMD(tgt_lang="en"),
     ]
     correlations = {m.label: {} for m in metrics}
@@ -25,7 +28,7 @@ if __name__ == '__main__':
 
     for lang_pair in [pair for pair in langs if pair.split("-")[-1] == "en"]:
         print("Evaluating lang pair %s" % lang_pair)
-        evaluator = Evaluator("data_dir", lang_pair, metrics, psqm=True)
+        evaluator = Evaluator("data_dir", lang_pair, metrics, psqm=USE_PSQM_JUDGEMENTS)
         report = evaluator.evaluate()
         print(report)
         human_judgements = report["human"]
