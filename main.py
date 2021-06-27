@@ -2,7 +2,7 @@ from typing import Optional
 
 from scipy.stats import spearmanr
 
-from bertscore import BERTScore
+from bertscore import BERTScore  # noqa: F401
 from conventional_metrics import BLEU, METEOR
 from scm import SCM, ContextualSCM
 from wmd import WMD
