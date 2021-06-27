@@ -86,9 +86,9 @@ class AugmentedCorpus:
 class Evaluator:
 
     langs = ["cs-en", "de-en", "fi-en", "ru-en"]
-    langs_psqm = ["zh-en"]
+    langs_qm = ["zh-en"]
 
-    def __init__(self, data_dir: str, lang_pair: Tuple[str, str], metrics: List[Metric], psqm: bool = False):
+    def __init__(self, data_dir: str, lang_pair: str, metrics: List[Metric], judgements_type: str):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
@@ -151,7 +151,8 @@ class Evaluator:
             df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_zhen.tsv"), sep="\t")
             df = df.set_index(["system", "seg_id"])
 
-            judgements_df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_zhen.avg_seg_scores.tsv"), sep=" ")
+            judgements_df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_zhen.avg_seg_scores.tsv"),
+                                        sep=" ")
             judgements_df = judgements_df.set_index(["system", "seg_id"])
 
             df = df.join(judgements_df)

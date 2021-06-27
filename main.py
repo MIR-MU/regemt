@@ -1,11 +1,9 @@
-from typing import Optional
-
 from scipy.stats import spearmanr
 
 from bertscore import BERTScore  # noqa: F401
-from conventional_metrics import BLEU, METEOR
-from scm import SCM, ContextualSCM
-from wmd import WMD
+from conventional_metrics import BLEU, METEOR  # noqa: F401
+from scm import SCM, ContextualSCM  # noqa: F401
+from wmd import WMD  # noqa: F401
 from common import Evaluator
 import pandas as pd
 
@@ -25,7 +23,7 @@ if __name__ == '__main__':
     correlations = {m.label: {} for m in metrics}
     correlations["human"] = {}
 
-    langs = Evaluator.langs_psqm if "QM" in JUDGEMENTS_TYPE is not None else Evaluator.langs
+    langs = Evaluator.langs_qm if "QM" in JUDGEMENTS_TYPE is not None else Evaluator.langs
 
     for lang_pair in [pair for pair in langs if pair.split("-")[-1] == "en"]:
         print("Evaluating lang pair %s" % lang_pair)
