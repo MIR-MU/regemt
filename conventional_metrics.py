@@ -1,4 +1,5 @@
 from typing import List
+from tqdm import tqdm
 
 import nltk
 
@@ -15,8 +16,10 @@ class BLEU(Metric):
     label = "BLEU"
 
     def compute(self, judgements: Judgements) -> List[float]:
-        return [corpus_bleu([actual_item], [expected_items]).score
-                for actual_item, expected_items in zip(judgements.translations, judgements.references)]
+        return [
+            max([corpus_bleu(actual_item, expected_item).score for expected_item in expected_items])
+            for actual_item, expected_items in tqdm(zip(judgements.translations, judgements.references),
+                                                    desc=self.label, total=len(judgements))]
 
 
 class METEOR(Metric):
@@ -31,4 +34,5 @@ class METEOR(Metric):
 
     def compute(self, judgements: Judgements) -> List[float]:
         return [meteor_score(expected_items, actual_item)
-                for actual_item, expected_items in zip(judgements.translations, judgements.references)]
+                for actual_item, expected_items in tqdm(zip(judgements.translations, judgements.references),
+                                                    desc=self.label, total=len(judgements))]

@@ -99,7 +99,8 @@ class Evaluator:
         for metric in self.metrics:
             metric.fit(train_judgements, test_judgements)
 
-    def load_judgements(self, split: str = "train", firstn: int = 10000, error_type: str = None) -> Judgements:
+    def load_judgements(self, split: str = "train", firstn: int = 1000,
+                        error_type: str = None, first_reference_only: bool = True) -> Judgements:
         if self.judgements_type == "DA":
             # TODO: note that train and test datasets are the same now
             split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
@@ -139,14 +140,6 @@ class Evaluator:
                 if len(src_texts) >= firstn:
                     break
 
-        elif self.judgements_type == "DA":
-            # TODO: note that train and test datasets are the same now
-            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
-                                               else TEST_DATASET_FILE_TEMPLATE)
-            src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
-            references = [[ref] for ref in self._load_file(split_file_template % ("reference", self.lang_pair))]
-            translations = self._load_file(split_file_template % ("mt-system", self.lang_pair))
-            scores = [float(s) for s in self._load_file(split_file_template % ("human", self.lang_pair))]
         elif self.judgements_type == "MQM":
             df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_zhen.tsv"), sep="\t")
             df = df.set_index(["system", "seg_id"])
@@ -165,14 +158,19 @@ class Evaluator:
 
             all_references = human_df_translated["target_human"].groupby(level=[0, 1, 2]).unique()
             all_references.name = 'all_references'
-            human_df_translated_ref = human_df_translated.join(all_references)
+            ref_translation_df = human_df_translated.join(all_references)
 
-            translated_clean_df = human_df_translated_ref[~pd.isna(human_df_translated_ref).any(axis=1)]
+            if first_reference_only:
+                ref_translation_df['all_references'] = ref_translation_df['all_references'].apply(lambda x: [x[0]])
+
+            translated_clean_df = ref_translation_df[~pd.isna(ref_translation_df).any(axis=1)]
 
             if error_type is None:
                 selected_df = translated_clean_df
             else:
                 selected_df = translated_clean_df[translated_clean_df["category_system"] == error_type]
+            if firstn is not None:
+                selected_df = selected_df.iloc[:firstn]
 
             return Judgements(selected_df["source_system"].values,
                               selected_df["all_references"].values,
