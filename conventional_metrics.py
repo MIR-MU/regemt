@@ -35,4 +35,4 @@ class METEOR(Metric):
     def compute(self, judgements: Judgements) -> List[float]:
         return [meteor_score(expected_items, actual_item)
                 for actual_item, expected_items in tqdm(zip(judgements.translations, judgements.references),
-                                                    desc=self.label, total=len(judgements))]
+                                                        desc=self.label, total=len(judgements))]
