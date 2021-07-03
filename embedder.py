@@ -1,5 +1,5 @@
 import shelve
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
 
 import numpy as np
 from bert_score import BERTScorer
@@ -20,44 +20,43 @@ class ContextualEmbedder:
                        for input_ids in input_ids_batch]
         return token_batch
 
-    def _embed_noncached(self, texts: List[str]) -> np.ndarray:
+    def _embed_noncached(self, texts: List[str]) -> Iterable[np.ndarray]:
         embeddings, mask, idf = get_bert_embedding(texts, self.scorer._model, self.scorer._tokenizer,
                                                    get_idf_dict(texts, self.scorer._tokenizer),
                                                    device=self.scorer.device)
-        embeddings = embeddings.cpu().numpy()
-        for text, embedding in zip(texts, embeddings):
+        for text, embedding in zip(texts, embeddings.cpu().numpy()):
             self.db[text] = embedding
-        return embeddings
+            yield embedding
 
-    def _embed_cached(self, texts: List[str]) -> np.ndarray:
-        embeddings = np.empty(shape=(len(texts), self.vector_size))
+    def _embed_cached(self, texts: List[str]) -> Iterable[np.ndarray]:
         for text_number, text in enumerate(texts):
             embedding = self.db[text]
-            embeddings[text_number, :] = embedding
-        return embeddings
+            yield embedding
 
-    def tokenize_embed(self, texts: List[str]) -> Tuple[List[List[str]], np.ndarray]:
+    def tokenize_embed(self, texts: List[str]) -> Tuple[List[List[str]], List[np.ndarray]]:
         if not texts:
             raise ValueError('Cannot tokenize and embed an empty list of texts')
 
-        cached_text_numbers, noncached_text_numbers = [], []
+        cached_text_numbers, noncached_text_numbers = set(), set()
         cached_texts, noncached_texts = [], []
         for text_number, text in enumerate(texts):
             if text in self.db:
-                cached_text_numbers.append(text_number)
+                cached_text_numbers.add(text_number)
                 cached_texts.append(text)
             else:
-                noncached_text_numbers.append(text_number)
+                noncached_text_numbers.add(text_number)
                 noncached_texts.append(text)
 
-        if not noncached_texts:
-            embeddings = self._embed_cached(cached_texts)
-        elif not cached_texts:
-            embeddings = self._embed_noncached(noncached_texts)
-        else:
-            embeddings = np.empty(shape=(len(texts), self.vector_size))
-            embeddings[cached_text_numbers, :] = self._embed_cached(cached_texts)
-            embeddings[noncached_text_numbers, :] = self._embed_noncached(noncached_texts)
+        cached_embeddings = iter(self._embed_cached(cached_texts))
+        noncached_embeddings = iter(self._embed_noncached(noncached_texts))
+
+        embeddings = []
+        for text_number, _ in enumerate(texts):
+            if text_number in cached_text_numbers:
+                embedding = next(cached_embeddings)
+            else:
+                embedding = next(noncached_embeddings)
+            embeddings.append(embedding)
 
         input_ids_batch = self._tokenize(texts)
         return (input_ids_batch, embeddings)
