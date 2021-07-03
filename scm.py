@@ -3,6 +3,7 @@ from itertools import product, chain
 
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
+from gensim.similarities.annoy import AnnoyIndexer
 from nltk.corpus import stopwords
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
@@ -55,8 +56,8 @@ class ContextualSCM(Metric):
             for token_index, (token, token_embedding) in enumerate(zip(augmented_tokens, tokens_embeddings)):
                 _add_word_to_kv(embeddings, None, token, token_embedding.T, len(self.dictionary))
 
-        word_similarity_index = WordEmbeddingSimilarityIndex(embeddings)
-
+        annoy = AnnoyIndexer(embeddings, num_trees=1)
+        word_similarity_index = WordEmbeddingSimilarityIndex(embeddings, kwargs={'indexer': annoy})
         self.similarity_matrix = SparseTermSimilarityMatrix(word_similarity_index, self.dictionary)
 
         # Convert to a sparse matrix type that allows modification
