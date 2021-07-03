@@ -21,9 +21,13 @@ class ContextualEmbedder:
         return token_batch
 
     def _embed_noncached(self, texts: List[str]) -> Iterable[np.ndarray]:
+        if not texts:
+            return []
+
         embeddings, mask, idf = get_bert_embedding(texts, self.scorer._model, self.scorer._tokenizer,
                                                    get_idf_dict(texts, self.scorer._tokenizer),
                                                    device=self.scorer.device)
+
         for text, embedding in zip(texts, embeddings.cpu().numpy()):
             self.db[text] = embedding
             yield embedding
