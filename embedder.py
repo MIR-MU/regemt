@@ -50,13 +50,18 @@ class ContextualEmbedder:
         cached_embeddings = iter(self._embed_cached(cached_texts))
         noncached_embeddings = iter(self._embed_noncached(noncached_texts))
 
+        texts_tokens = self._tokenize(texts)
+        assert len(texts_tokens) == len(texts)
+
         embeddings = []
-        for text_number, _ in enumerate(texts):
+        for text_number, (text, text_tokens) in enumerate(zip(texts, texts_tokens)):
             if text_number in cached_text_numbers:
                 embedding = next(cached_embeddings)
             else:
                 embedding = next(noncached_embeddings)
+            if embedding.shape[0] != len(text_tokens):
+                raise ValueError(f'Expected {len(text_tokens)} tokens for "{text}", but received {embedding.shape[0]}')
             embeddings.append(embedding)
+        assert len(embeddings) == len(texts)
 
-        input_ids_batch = self._tokenize(texts)
-        return (input_ids_batch, embeddings)
+        return (texts_tokens, embeddings)
