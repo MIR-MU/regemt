@@ -43,7 +43,7 @@ class ContextualWMD(Metric):
         corpus_embeddings = chain(test_ref_embs, test_trans_embs)
 
         # We only use words from test corpus, since we don't care about words from train corpus
-        self.dictionary = Dictionary(corpus)
+        self.dictionary = Dictionary(corpus, prune_at=None)
 
         self.w2v_model = KeyedVectors(self.embedder.vector_size, len(self.dictionary), dtype=float)
         for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, corpus_embeddings),
