@@ -42,9 +42,9 @@ if __name__ == '__main__':
 
         sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs), annot=True)
         plt.show()
-        plt.savefig('heatmap-pearson-{}.png' % lang_pair)
+        plt.savefig('heatmap-pearson-%s.png' % lang_pair)
         sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs), annot=True)
         plt.show()
-        plt.savefig('heatmap-spearman-{}.png' % lang_pair)
+        plt.savefig('heatmap-spearman-%s.png' % lang_pair)
 
     print("Done")
