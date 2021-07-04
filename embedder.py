@@ -101,5 +101,6 @@ class ContextualEmbedder:
             texts_embeddings.append(embeddings)
             texts_tokens.append(tokens)
         assert len(texts_embeddings) == len(texts)
+        assert len(texts_tokens) == len(texts)
 
         return texts_tokens, texts_embeddings
