@@ -17,6 +17,7 @@ class ContextualWMD(Metric):
     w2v_model = None
     embedder = None
     stopwords = None
+    test_judgements = None
     zipped_test_corpus = None
 
     def __init__(self, tgt_lang: str):

@@ -22,6 +22,7 @@ class ContextualSCM(Metric):
     dictionary = None
     tfidf = None
     embedder = None
+    test_judgements = None
     zipped_test_corpus = None
 
     def __init__(self, tgt_lang: str):
