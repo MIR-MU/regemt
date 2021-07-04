@@ -24,6 +24,13 @@ class ContextualEmbedder:
     def __init__(self, lang: str):
         self.scorer = BERTScorer(lang=lang)
 
+    def _get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> Embeddings:
+        with torch.no_grad():
+            batch_output = self.scorer._model(**inputs_batch)
+            embeddings = batch_output[0].detach().cpu().numpy()
+
+            return embeddings
+
     def _embed_noncached(self, texts: List[Text]) -> Iterable[Tuple[Tokens, Embeddings]]:
         if not texts:
             return []
@@ -40,7 +47,7 @@ class ContextualEmbedder:
             tokens_batch = [[self.scorer._tokenizer.decode(input_id) for input_id in input_ids]
                             for input_ids in inputs_batch['input_ids']]
 
-            embeddings_batch = self.get_bert_embeddings_parallel(inputs_batch)
+            embeddings_batch = _self.get_bert_embeddings_parallel(inputs_batch)
 
             for text, tokens, embeddings in zip(texts_batch, tokens_batch, embeddings_batch):
 
@@ -93,10 +100,3 @@ class ContextualEmbedder:
         assert len(texts_embeddings) == len(texts)
 
         return texts_tokens, texts_embeddings
-
-    def get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> Embeddings:
-        with torch.no_grad():
-            batch_output = self.scorer._model(**inputs_batch)
-            embeddings = batch_output[0].detach().cpu().numpy()
-
-            return embeddings
