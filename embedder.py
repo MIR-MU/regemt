@@ -6,8 +6,11 @@ from tqdm import tqdm
 
 import numpy as np
 from bert_score import BERTScorer
-from bert_score.utils import get_bert_embedding, get_idf_dict
 from transformers import BatchEncoding
+
+Text = str
+Tokens = List[str]
+Embeddings = np.ndarray
 
 
 class ContextualEmbedder:
@@ -21,7 +24,7 @@ class ContextualEmbedder:
     def __init__(self, lang: str):
         self.scorer = BERTScorer(lang=lang)
 
-    def _embed_noncached(self, texts: List[str]) -> Iterable[np.ndarray]:
+    def _embed_noncached(self, texts: List[Text]) -> Iterable[Tuple[Tokens, Embeddings]]:
         if not texts:
             return []
 
@@ -41,57 +44,57 @@ class ContextualEmbedder:
 
             for text, tokens, embeddings in zip(texts_batch, tokens_batch, embeddings_batch):
 
-                embeddings_nopad = [e for t, e in zip(tokens, embeddings)
-                                    if t not in self.scorer._tokenizer.all_special_tokens]
+                embeddings_nopad = np.array([e for t, e in zip(tokens, embeddings)
+                                            if t not in self.scorer._tokenizer.all_special_tokens])
                 tokens_nopad = [t for t in tokens if t not in self.scorer._tokenizer.all_special_tokens]
 
-                assert len(tokens_nopad) == len(embeddings_nopad), "'%s': num_tokens: %s" % (tokens_nopad, len(embeddings_nopad))
+                assert len(tokens_nopad) == embeddings_nopad.shape[0], \
+                    "'%s': num_tokens: %s" % (tokens_nopad, embeddings_nopad.shape[0])
 
-                self.db[text] = embeddings_nopad
+                self.db[text] = (tokens_nopad, embeddings_nopad)
                 yield tokens_nopad, embeddings_nopad
 
-    def _embed_cached(self, texts: List[str]) -> Iterable[np.ndarray]:
+    def _embed_cached(self, texts: List[Text]) -> Iterable[Tuple[Tokens, Embeddings]]:
         for text in texts:
-            tokens, embedding = self.db[text]
-            assert embedding.shape[0] == len(tokens)
-            yield tokens, embedding
+            tokens, embeddings = self.db[text]
+            assert embeddings.shape[0] == len(tokens)
+            yield tokens, embeddings
 
-    def tokenize_embed(self, texts: List[str]) -> Tuple[List[List[str]], List[np.ndarray]]:
+    def tokenize_embed(self, texts: List[Text]) -> Tuple[List[Tokens], List[Embeddings]]:
         if not texts:
             raise ValueError('Cannot tokenize and embed an empty list of texts')
 
         cached_text_numbers, noncached_text_numbers = set(), set()
         cached_texts, noncached_texts = [], []
         for text_number, text in enumerate(texts):
-        #     if text in self.db:
-        #         cached_text_numbers.add(text_number)
-        #         cached_texts.append(text)
-        #     else:
+            if text in self.db:
+                cached_text_numbers.add(text_number)
+                cached_texts.append(text)
+            else:
                 noncached_text_numbers.add(text_number)
                 noncached_texts.append(text)
-        #
-        # cached_embeddings = iter(self._embed_cached(cached_texts))
+
+        cached_embeddings = iter(self._embed_cached(cached_texts))
         noncached_embeddings = iter(self._embed_noncached(noncached_texts))
 
         if len(noncached_texts):
             self.db.sync()
 
-        embeddings = []
+        texts_embeddings = []
         texts_tokens = []
         for text_number, text in enumerate(texts):
-            # if text_number in cached_text_numbers:
-            #     tokens, embedding = next(cached_embeddings)
-            # else:
-            tokens, embedding = next(noncached_embeddings)
-            assert len(embedding) == len(tokens)
-            embeddings.append(embedding)
+            if text_number in cached_text_numbers:
+                tokens, embeddings = next(cached_embeddings)
+            else:
+                tokens, embeddings = next(noncached_embeddings)
+            assert len(embeddings) == len(tokens)
+            texts_embeddings.append(embeddings)
             texts_tokens.append(tokens)
-        assert len(embeddings) == len(texts)
+        assert len(texts_embeddings) == len(texts)
 
-        return texts_tokens, embeddings
+        return texts_tokens, texts_embeddings
 
-    def get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> np.array:
-
+    def get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> Embeddings:
         with torch.no_grad():
             batch_output = self.scorer._model(**inputs_batch)
             embeddings = batch_output[0].detach().cpu().numpy()
