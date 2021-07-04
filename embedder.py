@@ -47,7 +47,7 @@ class ContextualEmbedder:
             tokens_batch = [[self.scorer._tokenizer.decode(input_id) for input_id in input_ids]
                             for input_ids in inputs_batch['input_ids']]
 
-            embeddings_batch = _self.get_bert_embeddings_parallel(inputs_batch)
+            embeddings_batch = self._get_bert_embeddings_parallel(inputs_batch)
 
             for text, tokens, embeddings in zip(texts_batch, tokens_batch, embeddings_batch):
 
