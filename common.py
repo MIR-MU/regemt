@@ -171,7 +171,7 @@ class Evaluator:
             else:
                 selected_df = translated_clean_df[translated_clean_df["category_system"] == error_type]
             if self.firstn is not None:
-                selected_df = selected_df.iloc[:firstn]
+                selected_df = selected_df.iloc[:self.firstn]
 
             return Judgements(selected_df["source_system"].tolist(),
                               selected_df["all_references"].tolist(),
