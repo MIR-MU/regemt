@@ -8,11 +8,10 @@ from bert_score.utils import get_bert_embedding, get_idf_dict
 
 class ContextualEmbedder:
     vector_size = 1024
-    db_filename = 'bert-embeddings-db'
+    db = shelve.open('bert-embeddings-db')
 
     def __init__(self, lang: str):
         self.scorer = BERTScorer(lang=lang)
-        self.db = shelve.open(self.db_filename)
 
     def _tokenize(self, texts: List[str]) -> List[List[str]]:
         input_ids_batch = self.scorer._tokenizer(texts).input_ids
@@ -61,6 +60,9 @@ class ContextualEmbedder:
 
         cached_embeddings = iter(self._embed_cached(cached_texts_tokens, cached_texts))
         noncached_embeddings = iter(self._embed_noncached(noncached_texts_tokens, noncached_texts))
+
+        if len(noncached_texts):
+            self.db.sync()
 
         embeddings = []
         for text_number, (text, text_tokens) in enumerate(zip(texts, texts_tokens)):
