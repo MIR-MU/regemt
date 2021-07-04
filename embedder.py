@@ -20,7 +20,7 @@ class ContextualEmbedder:
                        for input_ids in input_ids_batch]
         return token_batch
 
-    def _embed_noncached(self, texts: List[str]) -> Iterable[np.ndarray]:
+    def _embed_noncached(self, texts_tokens: List[List[str]], texts: List[str]) -> Iterable[np.ndarray]:
         if not texts:
             return []
 
@@ -28,34 +28,39 @@ class ContextualEmbedder:
                                                    get_idf_dict(texts, self.scorer._tokenizer),
                                                    device=self.scorer.device)
 
-        for text, embedding in zip(texts, embeddings.cpu().numpy()):
+        for text, text_tokens, embedding in zip(texts, texts_tokens, embeddings.cpu().numpy()):
+            embedding = embedding[:len(text_tokens)]
             self.db[text] = embedding
             yield embedding
 
-    def _embed_cached(self, texts: List[str]) -> Iterable[np.ndarray]:
-        for text_number, text in enumerate(texts):
+    def _embed_cached(self, texts_tokens: List[List[str]], texts: List[str]) -> Iterable[np.ndarray]:
+        for text, text_tokens in zip(texts, texts_tokens):
             embedding = self.db[text]
+            assert embedding.shape[0] == len(text_tokens)
             yield embedding
 
     def tokenize_embed(self, texts: List[str]) -> Tuple[List[List[str]], List[np.ndarray]]:
         if not texts:
             raise ValueError('Cannot tokenize and embed an empty list of texts')
 
+        texts_tokens = self._tokenize(texts)
+        assert len(texts_tokens) == len(texts)
+
         cached_text_numbers, noncached_text_numbers = set(), set()
         cached_texts, noncached_texts = [], []
-        for text_number, text in enumerate(texts):
+        cached_texts_tokens, noncached_texts_tokens = [], []
+        for text_number, (text, text_tokens) in enumerate(zip(texts, texts_tokens)):
             if text in self.db:
                 cached_text_numbers.add(text_number)
                 cached_texts.append(text)
+                cached_texts_tokens.append(text_tokens)
             else:
                 noncached_text_numbers.add(text_number)
                 noncached_texts.append(text)
+                noncached_texts_tokens.append(text_tokens)
 
-        cached_embeddings = iter(self._embed_cached(cached_texts))
-        noncached_embeddings = iter(self._embed_noncached(noncached_texts))
-
-        texts_tokens = self._tokenize(texts)
-        assert len(texts_tokens) == len(texts)
+        cached_embeddings = iter(self._embed_cached(cached_texts_tokens, cached_texts))
+        noncached_embeddings = iter(self._embed_noncached(noncached_texts_tokens, noncached_texts))
 
         embeddings = []
         for text_number, (text, text_tokens) in enumerate(zip(texts, texts_tokens)):
@@ -63,8 +68,7 @@ class ContextualEmbedder:
                 embedding = next(cached_embeddings)
             else:
                 embedding = next(noncached_embeddings)
-            if embedding.shape[0] != len(text_tokens):
-                raise ValueError(f'Expected {len(text_tokens)} tokens for "{text}", but received {embedding.shape[0]}')
+            assert embedding.shape[0] == len(text_tokens)
             embeddings.append(embedding)
         assert len(embeddings) == len(texts)
 
