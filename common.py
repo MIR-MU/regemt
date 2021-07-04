@@ -87,14 +87,15 @@ class Evaluator:
     langs = ["cs-en", "de-en", "fi-en", "ru-en"]
     langs_qm = ["zh-en"]
 
-    def __init__(self, data_dir: str, lang_pair: str, metrics: List[Metric], judgements_type: str):
+    def __init__(self, data_dir: str, lang_pair: str, metrics: List[Metric], judgements_type: str,
+                 firstn: Optional[int] = None):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
         self.judgements_type = judgements_type
 
-        train_judgements = self.load_judgements("train")
-        test_judgements = self.load_judgements("test")
+        train_judgements = self.load_judgements("train", firstn)
+        test_judgements = self.load_judgements("test", firstn)
         for metric in self.metrics:
             metric.fit(train_judgements, test_judgements)
 
