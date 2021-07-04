@@ -98,7 +98,7 @@ class Evaluator:
         for metric in self.metrics:
             metric.fit(train_judgements, test_judgements)
 
-    def load_judgements(self, split: str = "train", firstn: int = 1000,
+    def load_judgements(self, split: str = "train", firstn: int = 100,
                         error_type: str = None, first_reference_only: bool = True) -> Judgements:
         if self.judgements_type == "DA":
             # TODO: note that train and test datasets are the same now

@@ -19,8 +19,8 @@ class ContextualWMD(Metric):
     stopwords = None
     zipped_test_corpus = None
 
-    def __init__(self, tgt_lang: str, gpus: List[int] = None):
-        self.embedder = ContextualEmbedder(lang=tgt_lang, gpus=gpus)
+    def __init__(self, tgt_lang: str):
+        self.embedder = ContextualEmbedder(lang=tgt_lang)
         if tgt_lang == "en":
             nltk.download('stopwords')
             self.stopwords = stopwords.words('english')
