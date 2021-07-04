@@ -33,6 +33,8 @@ class ContextualSCM(Metric):
             raise ValueError(tgt_lang)
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
+        self.test_judgements = test_judgements
+
         test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
         test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
 
@@ -83,6 +85,9 @@ class ContextualSCM(Metric):
         self.similarity_matrix.matrix = csr_matrix(matrix)
 
     def compute(self, judgements: Judgements) -> List[float]:
+        if judgements != self.test_judgements:
+            raise ValueError('Tne judgements are different from the test_judgements used in fit()')
+
         # https://stackoverflow.com/questions/59573454/soft-cosine-similarity-between-two-sentences
         out_scores = []
         for reference_words, translation_words in tqdm(self.zipped_test_corpus, desc=self.label):

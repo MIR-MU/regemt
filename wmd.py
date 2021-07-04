@@ -28,6 +28,8 @@ class ContextualWMD(Metric):
             raise ValueError(tgt_lang)
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
+        self.test_judgements = test_judgements
+
         test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
         test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
 
@@ -53,6 +55,9 @@ class ContextualWMD(Metric):
                 _add_word_to_kv(self.w2v_model, None, token, token_embedding, len(self.dictionary))
 
     def compute(self, judgements: Judgements) -> List[float]:
+        if judgements != self.test_judgements:
+            raise ValueError('Tne judgements are different from the test_judgements used in fit()')
+
         out_scores = [self.w2v_model.wmdistance(reference_words, translation_words)
                       for reference_words, translation_words
                       in tqdm(self.zipped_test_corpus, desc=self.label)]
