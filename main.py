@@ -18,9 +18,9 @@ if __name__ == '__main__':
         BERTScore(tgt_lang="en"),
         ContextualSCM(tgt_lang="en"),
         ContextualWMD(tgt_lang="en"),
-        SCM(tgt_lang="en", use_tfidf=False),
-        SCM(tgt_lang="en", use_tfidf=True),
-        SCM(tgt_lang="en", use_tfidf=False),
+        # SCM(tgt_lang="en", use_tfidf=False),
+        # SCM(tgt_lang="en", use_tfidf=True),
+        # SCM(tgt_lang="en", use_tfidf=False),
         WMD(tgt_lang="en"),
     ]
     correlations = {m.label: {} for m in metrics}
