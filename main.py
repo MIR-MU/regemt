@@ -21,7 +21,7 @@ if __name__ == '__main__':
         # SCM(tgt_lang="en", use_tfidf=False),
         # SCM(tgt_lang="en", use_tfidf=True),
         # SCM(tgt_lang="en", use_tfidf=False),
-        WMD(tgt_lang="en"),
+        # WMD(tgt_lang="en"),
     ]
     correlations = {m.label: {} for m in metrics}
     correlations["human"] = {}
