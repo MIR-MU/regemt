@@ -46,7 +46,6 @@ class Judgements:
 class Metric(abc.ABC):
     label: str = 'None'
 
-    @abc.abstractmethod
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         pass
 
@@ -172,10 +171,10 @@ class Evaluator:
             if firstn is not None:
                 selected_df = selected_df.iloc[:firstn]
 
-            return Judgements(selected_df["source_system"].values,
-                              selected_df["all_references"].values,
-                              selected_df["target_system"].values,
-                              selected_df["mqm_avg_score_system"].values)
+            return Judgements(selected_df["source_system"].tolist(),
+                              selected_df["all_references"].tolist(),
+                              selected_df["target_system"].tolist(),
+                              selected_df["mqm_avg_score_system"].tolist())
         else:
             raise ValueError(self.judgements_type)
 

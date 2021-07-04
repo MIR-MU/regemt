@@ -19,8 +19,8 @@ class ContextualWMD(Metric):
     stopwords = None
     zipped_test_corpus = None
 
-    def __init__(self, tgt_lang: str):
-        self.embedder = ContextualEmbedder(lang=tgt_lang)
+    def __init__(self, tgt_lang: str, gpus: List[int] = None):
+        self.embedder = ContextualEmbedder(lang=tgt_lang, gpus=gpus)
         if tgt_lang == "en":
             nltk.download('stopwords')
             self.stopwords = stopwords.words('english')
@@ -47,9 +47,10 @@ class ContextualWMD(Metric):
 
         self.w2v_model = KeyedVectors(self.embedder.vector_size, len(self.dictionary), dtype=float)
         for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, corpus_embeddings),
-                                                        desc=f'{self.label}: construct contextual embeddings'):
+                                                        desc=f'{self.label}: construct contextual embeddings',
+                                                        total=len(corpus)):
             for token_index, (token, token_embedding) in enumerate(zip(augmented_tokens, tokens_embeddings)):
-                _add_word_to_kv(self.w2v_model, None, token, token_embedding.T, len(self.dictionary))
+                _add_word_to_kv(self.w2v_model, None, token, token_embedding, len(self.dictionary))
 
     def compute(self, judgements: Judgements) -> List[float]:
         out_scores = [self.w2v_model.wmdistance(reference_words, translation_words)

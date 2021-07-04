@@ -54,7 +54,7 @@ class ContextualSCM(Metric):
         for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, corpus_embeddings),
                                                         desc=f'{self.label}: construct contextual embeddings'):
             for token_index, (token, token_embedding) in enumerate(zip(augmented_tokens, tokens_embeddings)):
-                _add_word_to_kv(embeddings, None, token, token_embedding.T, len(self.dictionary))
+                _add_word_to_kv(embeddings, None, token, token_embedding, len(self.dictionary))
 
         annoy = AnnoyIndexer(embeddings, num_trees=1)
         word_similarity_index = WordEmbeddingSimilarityIndex(embeddings, kwargs={'indexer': annoy})
