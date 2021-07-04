@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     for lang_pair in [pair for pair in langs if pair.split("-")[-1] == "en"]:
         print("Evaluating lang pair %s" % lang_pair)
-        evaluator = Evaluator("data_dir", lang_pair, metrics, judgements_type=JUDGEMENTS_TYPE, firstn=10)
+        evaluator = Evaluator("data_dir", lang_pair, metrics, judgements_type=JUDGEMENTS_TYPE, firstn=100)
         report = evaluator.evaluate()
         reports.append(report)
 
@@ -41,10 +41,13 @@ if __name__ == '__main__':
             correlations[metric_label][lang_pair] = spearmanr(vals, human_judgements).correlation
 
         sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs), annot=True)
+        plt.tight_layout()
         plt.show()
         plt.savefig('heatmap-pearson-%s.png' % lang_pair)
+
         sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs), annot=True)
         plt.show()
+        plt.tight_layout()
         plt.savefig('heatmap-spearman-%s.png' % lang_pair)
 
     print("Done")
