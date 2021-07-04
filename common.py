@@ -88,18 +88,19 @@ class Evaluator:
     langs_qm = ["zh-en"]
 
     def __init__(self, data_dir: str, lang_pair: str, metrics: List[Metric], judgements_type: str,
-                 firstn: Optional[int] = None):
+                 firstn: Optional[int] = 100):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
         self.judgements_type = judgements_type
+        self.firstn = firstn
 
-        train_judgements = self.load_judgements("train", firstn)
-        test_judgements = self.load_judgements("test", firstn)
+        train_judgements = self.load_judgements("train")
+        test_judgements = self.load_judgements("test")
         for metric in self.metrics:
             metric.fit(train_judgements, test_judgements)
 
-    def load_judgements(self, split: str = "train", firstn: int = 100,
+    def load_judgements(self, split: str = "train",
                         error_type: str = None, first_reference_only: bool = True) -> Judgements:
         if self.judgements_type == "DA":
             # TODO: note that train and test datasets are the same now
@@ -137,7 +138,7 @@ class Evaluator:
                         break  # we want variable translation pairs, but if more is needed, we can remove this
                 else:
                     print("No reference judgements: %s" % i)
-                if len(src_texts) >= firstn:
+                if self.firstn is not None and len(src_texts) >= self.firstn:
                     break
 
         elif self.judgements_type == "MQM":
@@ -169,7 +170,7 @@ class Evaluator:
                 selected_df = translated_clean_df
             else:
                 selected_df = translated_clean_df[translated_clean_df["category_system"] == error_type]
-            if firstn is not None:
+            if self.firstn is not None:
                 selected_df = selected_df.iloc[:firstn]
 
             return Judgements(selected_df["source_system"].tolist(),
