@@ -3,7 +3,7 @@ from itertools import product, chain
 
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
-from gensim.similarities.annoy import AnnoyIndexer
+from gensim.similarities.index import AnnoyIndexer
 from nltk.corpus import stopwords
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
