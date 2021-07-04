@@ -15,13 +15,13 @@ if __name__ == '__main__':
     metrics = [
         BLEU(),
         METEOR(),
-        # BERTScore(tgt_lang="en"),
+        BERTScore(tgt_lang="en"),
         ContextualSCM(tgt_lang="en"),
-        # ContextualWMD(tgt_lang="en"),
-        # SCM(tgt_lang="en", use_tfidf=False),
-        # SCM(tgt_lang="en", use_tfidf=True),
-        # SCM(tgt_lang="en", use_tfidf=False),
-        # WMD(tgt_lang="en"),
+        ContextualWMD(tgt_lang="en"),
+        SCM(tgt_lang="en", use_tfidf=False),
+        SCM(tgt_lang="en", use_tfidf=True),
+        SCM(tgt_lang="en", use_tfidf=False),
+        WMD(tgt_lang="en"),
     ]
     correlations = {m.label: {} for m in metrics}
     correlations["human"] = {}
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     for lang_pair in [pair for pair in langs if pair.split("-")[-1] == "en"]:
         print("Evaluating lang pair %s" % lang_pair)
-        evaluator = Evaluator("data_dir", lang_pair, metrics, judgements_type=JUDGEMENTS_TYPE, firstn=1000)
+        evaluator = Evaluator("data_dir", lang_pair, metrics, judgements_type=JUDGEMENTS_TYPE, firstn=10)
         report = evaluator.evaluate()
         reports.append(report)
 
