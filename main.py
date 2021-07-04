@@ -40,9 +40,11 @@ if __name__ == '__main__':
         for metric_label, vals in report.items():
             correlations[metric_label][lang_pair] = spearmanr(vals, human_judgements).correlation
 
-    sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs), annot=True)
-    plt.show()
-    sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs), annot=True)
-    plt.show()
+        sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs), annot=True)
+        plt.show()
+        plt.savefig('heatmap-pearson-{}.png' % lang_pair)
+        sns.heatmap(pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs), annot=True)
+        plt.show()
+        plt.savefig('heatmap-spearman-{}.png' % lang_pair)
 
     print("Done")
