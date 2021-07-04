@@ -21,8 +21,9 @@ class ContextualEmbedder:
 
     db = shelve.open('bert-embeddings-db')
 
-    def __init__(self, lang: str):
+    def __init__(self, lang: str, use_db: bool = True):
         self.scorer = BERTScorer(lang=lang)
+        self.use_db = True
 
     def _get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> Embeddings:
         with torch.no_grad():
@@ -58,10 +59,12 @@ class ContextualEmbedder:
                 assert len(tokens_nopad) == embeddings_nopad.shape[0], \
                     "'%s': num_tokens: %s" % (tokens_nopad, embeddings_nopad.shape[0])
 
-                self.db[text] = (tokens_nopad, embeddings_nopad)
+                if self.use_db:
+                    self.db[text] = (tokens_nopad, embeddings_nopad)
                 yield tokens_nopad, embeddings_nopad
 
     def _embed_cached(self, texts: List[Text]) -> Iterable[Tuple[Tokens, Embeddings]]:
+        assert self.use_db
         for text in texts:
             tokens, embeddings = self.db[text]
             assert embeddings.shape[0] == len(tokens)
@@ -74,7 +77,7 @@ class ContextualEmbedder:
         cached_text_numbers, noncached_text_numbers = set(), set()
         cached_texts, noncached_texts = [], []
         for text_number, text in enumerate(texts):
-            if text in self.db:
+            if self.use_db and text in self.db:
                 cached_text_numbers.add(text_number)
                 cached_texts.append(text)
             else:
@@ -84,7 +87,7 @@ class ContextualEmbedder:
         cached_embeddings = iter(self._embed_cached(cached_texts))
         noncached_embeddings = iter(self._embed_noncached(noncached_texts))
 
-        if len(noncached_texts):
+        if self.use_db and noncached_texts:
             self.db.sync()
 
         texts_embeddings = []
