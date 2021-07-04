@@ -28,6 +28,7 @@ class ContextualEmbedder:
                                                    device=self.scorer.device)
 
         for text, text_tokens, embedding in zip(texts, texts_tokens, embeddings.cpu().numpy()):
+            assert embedding.shape[0] >= len(text_tokens)
             embedding = embedding[:len(text_tokens)]
             self.db[text] = embedding
             yield embedding
