@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict, Optional, Set, Any
+from typing import List, Tuple, Iterable, Dict, Optional, Set, Any, Union
 import pandas as pd
 from gensim.utils import simple_preprocess
 from tqdm import tqdm
@@ -11,7 +11,8 @@ TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
 
 class Judgements:
 
-    def __init__(self, src_texts: List[str], references: List[List[str]], translations: List[str], scores: List[float]):
+    def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
+                 translations: List[str], scores: List[float]):
         self.src_texts = src_texts
         self.references = references
         self.translations = translations
@@ -54,6 +55,13 @@ class Metric(abc.ABC):
         pass
 
 
+class ReferenceFreeMetric(Metric):
+
+    @abc.abstractmethod
+    def compute_ref_free(self, test_judgements: Judgements) -> List[float]:
+        pass
+
+
 class AugmentedCorpus:
     def __init__(self, prefix: str, corpus: Iterable[List[str]]):
         if ' ' in prefix:
@@ -84,11 +92,8 @@ class AugmentedCorpus:
 
 class Evaluator:
 
-    langs = ["cs-en", "de-en", "fi-en", "ru-en"]
-    langs_qm = ["zh-en"]
-
-    def __init__(self, data_dir: str, lang_pair: str, metrics: List[Metric], judgements_type: str,
-                 firstn: Optional[int] = 100):
+    def __init__(self, data_dir: str, lang_pair: str, metrics: List[Union[Metric, ReferenceFreeMetric]],
+                 judgements_type: str, firstn: Optional[int] = 100):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
@@ -99,6 +104,18 @@ class Evaluator:
         test_judgements = self.load_judgements("test")
         for metric in self.metrics:
             metric.fit(train_judgements, test_judgements)
+
+    @staticmethod
+    def langs_for_judgements(judgements_type: str):
+        if judgements_type == "DA":
+            return ["cs-en", "de-en", "fi-en", "ru-en"]
+        elif judgements_type == "PSQM" or judgements_type == "MQM":
+            return ["zh-en"]
+        elif judgements_type == "catastrophic":
+            # return ["encs", "ende", "enja", "enzh"]
+            return ["ende"]
+        else:
+            raise ValueError(judgements_type)
 
     def load_judgements(self, split: str = "train",
                         error_type: str = None, first_reference_only: bool = True) -> Judgements:
@@ -177,6 +194,16 @@ class Evaluator:
                               selected_df["all_references"].tolist(),
                               selected_df["target_system"].tolist(),
                               selected_df["mqm_avg_score_system"].tolist())
+        elif self.judgements_type == "catastrophic":
+            pass
+            df = pd.read_csv("data_dir/%s_majority_dev.tsv" % self.lang_pair,
+                             sep="\t", names=["en", "other", "judgements", "is_critical"])
+            df.judgements = df.judgements.apply(lambda j:
+                                                sum(map(int, j.replace("[", "").replace("]", "").split(", "))))
+            # if self.firstn is not None:
+            #     df = df.iloc[:self.firstn]
+
+            return Judgements(df["en"].tolist(), None, df["other"].tolist(), df["judgements"].tolist())
         else:
             raise ValueError(self.judgements_type)
 
@@ -187,16 +214,15 @@ class Evaluator:
         with open(fpath) as f:
             return [line.strip() for line in f.readlines()]
 
-    def evaluate(self) -> Dict[str, List[float]]:
+    def evaluate(self, reference_free: bool = False) -> Dict[str, List[float]]:
         report = {}
         test_judgements = self.load_judgements("test")
         report["human"] = test_judgements.scores
-
-        for metric in self.metrics:
-            report[metric.label] = [float(val) for val in metric.compute(test_judgements)]
+        if not reference_free:
+            for metric in self.metrics:
+                report[metric.label] = [float(val) for val in metric.compute(test_judgements)]
+        else:
+            for metric in [m for m in self.metrics if issubclass(type(m), ReferenceFreeMetric)]:
+                report[metric.label] = [float(val) for val in metric.compute_ref_free(test_judgements)]
 
         return report
-
-    def evaluate_no_references(self):
-        # TODO
-        pass

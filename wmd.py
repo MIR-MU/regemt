@@ -8,30 +8,28 @@ import nltk
 from nltk.corpus import stopwords
 from tqdm import tqdm
 
-from common import Metric, Judgements, AugmentedCorpus
+from common import Metric, ReferenceFreeMetric, Judgements, AugmentedCorpus
 from embedder import ContextualEmbedder
 
 
-class ContextualWMD(Metric):
+class ContextualWMD(ReferenceFreeMetric):
     label = "WMD_contextual"
     w2v_model = None
-    embedder = None
     stopwords = None
+    dictionary = None
     test_judgements = None
     zipped_test_corpus = None
 
-    def __init__(self, tgt_lang: str):
+    def __init__(self, tgt_lang: str, reference_free: bool = False):
         self.embedder = ContextualEmbedder(lang=tgt_lang)
-        if tgt_lang == "en":
-            nltk.download('stopwords')
-            self.stopwords = stopwords.words('english')
-        else:
-            raise ValueError(tgt_lang)
+        self.reference_free = reference_free
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         self.test_judgements = test_judgements
-
-        test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
+        if self.reference_free:
+            test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.src_texts])
+        else:
+            test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
         test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
 
         augmented_test_reference_corpus = AugmentedCorpus('test-reference', test_ref_corpus)
@@ -63,6 +61,9 @@ class ContextualWMD(Metric):
                       for reference_words, translation_words
                       in tqdm(self.zipped_test_corpus, desc=self.label)]
         return out_scores
+
+    def compute_ref_free(self, test_judgements: Judgements) -> List[float]:
+        return self.compute(test_judgements)
 
 
 class WMD(Metric):
