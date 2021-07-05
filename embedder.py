@@ -23,7 +23,7 @@ class ContextualEmbedder:
 
     def __init__(self, lang: str, use_db: bool = True):
         self.scorer = BERTScorer(lang=lang)
-        self.use_db = True
+        self.use_db = use_db
 
     def _get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> Embeddings:
         with torch.no_grad():
