@@ -9,4 +9,4 @@ scipy~=1.6.1
 pandas~=1.2.4
 bert-score
 seaborn
-spacy
+spacy~=3.0.6

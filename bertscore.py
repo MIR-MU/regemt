@@ -1,7 +1,7 @@
 from typing import List
 
 from bert_score import BERTScorer
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 
 from common import Metric, Judgements
 

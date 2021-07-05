@@ -6,8 +6,8 @@ from bertscore import BERTScore  # noqa: F401
 from common import Evaluator
 from conventional_metrics import BLEU, METEOR  # noqa: F401
 from ood_metrics import SyntacticCompositionality
-from scm import SCM, ContextualSCM  # noqa: F401
-from wmd import WMD, ContextualWMD  # noqa: F401
+from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
+from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 
 if __name__ == '__main__':
     JUDGEMENTS_TYPE = "catastrophic"
@@ -21,6 +21,9 @@ if __name__ == '__main__':
         ContextualWMD(tgt_lang="de", reference_free=NO_REFERENCE),
         SyntacticCompositionality(tgt_lang="de", src_lang="en", reference_free=NO_REFERENCE)
         # SyntacticCompositionality(tgt_lang="cs", src_lang="en", reference_free=REFERENCE_FREE)
+        # DecontextualizedSCM(tgt_lang="en", use_tfidf=False),
+        # DecontextualizedSCM(tgt_lang="en", use_tfidf=True),
+        # DecontextualizedWMD(tgt_lang="en"),
         # SCM(tgt_lang="en", use_tfidf=False),
         # SCM(tgt_lang="en", use_tfidf=True),
         # SCM(tgt_lang="en", use_tfidf=False),

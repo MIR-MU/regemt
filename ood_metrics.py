@@ -3,7 +3,7 @@ from typing import Dict, Tuple, List, Callable, Iterable
 import numpy as np
 import spacy
 
-from common import Metric, Judgements, ReferenceFreeMetric
+from common import Judgements, ReferenceFreeMetric
 
 taggers: Dict[str, Callable[[str], Iterable[Tuple[str, str]]]] = {}
 

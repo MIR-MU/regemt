@@ -1,8 +1,8 @@
 import shelve
-from typing import List, Tuple, Iterable
+from typing import List, Tuple, Iterable, Dict
 
 import torch
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 
 import numpy as np
 from bert_score import BERTScorer
@@ -10,6 +10,7 @@ from transformers import BatchEncoding
 
 Text = str
 Tokens = List[str]
+Language = str
 Embeddings = np.ndarray
 
 
@@ -19,13 +20,32 @@ class ContextualEmbedder:
     batch_size = 10
     device = "cuda" if torch.cuda.device_count() > 0 else "cpu"
 
-    diskcache = shelve.open('bert-embeddings-db')
-    ramcache = dict()
+    diskcaches: Dict[Language, shelve.Shelf] = dict()
+    ramcaches: Dict[Language, Dict[Text, Tuple[Tokens, Embeddings]]] = dict()
+    scorers: Dict[Language, BERTScorer] = dict()
 
-    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = False):
-        self.scorer = BERTScorer(lang=lang)
+    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = True):
+        self.lang = lang
         self.use_diskcache = use_diskcache
         self.use_ramcache = use_ramcache
+
+    @property
+    def diskcache(self) -> shelve.Shelf:
+        if self.lang not in self.diskcaches:
+            self.diskcaches[self.lang] = shelve.open(f'embedder-diskcache-{self.lang}')
+        return self.diskcaches[self.lang]
+
+    @property
+    def ramcache(self) -> Dict[Text, Tuple[Tokens, Embeddings]]:
+        if self.lang not in self.ramcaches:
+            self.ramcaches[self.lang] = dict()
+        return self.ramcaches[self.lang]
+
+    @property
+    def scorer(self) -> BERTScorer:
+        if self.lang not in self.scorers:
+            self.scorers[self.lang] = BERTScorer(lang=self.lang)
+        return self.scorers[self.lang]
 
     def _get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> Embeddings:
         with torch.no_grad():
