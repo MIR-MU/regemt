@@ -16,16 +16,12 @@ class ContextualWMD(Metric):
     label = "WMD_contextual"
     w2v_model = None
     embedder = None
-    stopwords = None
     test_judgements = None
     zipped_test_corpus = None
 
     def __init__(self, tgt_lang: str):
         self.embedder = ContextualEmbedder(lang=tgt_lang)
-        if tgt_lang == "en":
-            nltk.download('stopwords')
-            self.stopwords = stopwords.words('english')
-        else:
+        if tgt_lang != "en":
             raise ValueError(tgt_lang)
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):

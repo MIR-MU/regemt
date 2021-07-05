@@ -17,7 +17,6 @@ from embedder import ContextualEmbedder
 
 class ContextualSCM(Metric):
     label = "SCM_contextual"
-    stopwords = None
     similarity_matrix = None
     dictionary = None
     tfidf = None
@@ -27,10 +26,7 @@ class ContextualSCM(Metric):
 
     def __init__(self, tgt_lang: str):
         self.embedder = ContextualEmbedder(lang=tgt_lang)
-        if tgt_lang == "en":
-            nltk.download('stopwords')
-            self.stopwords = stopwords.words('english')
-        else:
+        if tgt_lang != "en":
             raise ValueError(tgt_lang)
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
