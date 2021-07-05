@@ -37,19 +37,18 @@ class ContextualWMD(Metric):
             augmented_test_reference_corpus.corpus,
             augmented_test_translation_corpus.corpus,
         ))
-        corpus = augmented_test_reference_corpus.corpus + augmented_test_translation_corpus.corpus
-        # different dims, we can not use np (can be aligned in precedence)
-        corpus_embeddings = chain(test_ref_embs, test_trans_embs)
 
         # We only use words from test corpus, since we don't care about words from train corpus
-        self.dictionary = Dictionary(corpus, prune_at=None)
+        corpus = augmented_test_reference_corpus.corpus + augmented_test_translation_corpus.corpus
+        embeddings = test_ref_embs + test_trans_embs
+        dictionary = Dictionary(corpus, prune_at=None)
 
-        self.w2v_model = KeyedVectors(self.embedder.vector_size, len(self.dictionary), dtype=float)
-        for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, corpus_embeddings),
+        self.w2v_model = KeyedVectors(self.embedder.vector_size, len(dictionary), dtype=float)
+        for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, embeddings),
                                                         desc=f'{self.label}: construct contextual embeddings',
                                                         total=len(corpus)):
-            for token_index, (token, token_embedding) in enumerate(zip(augmented_tokens, tokens_embeddings)):
-                _add_word_to_kv(self.w2v_model, None, token, token_embedding, len(self.dictionary))
+            for token, token_embedding in zip(augmented_tokens, tokens_embeddings):
+                _add_word_to_kv(self.w2v_model, None, token, token_embedding, len(dictionary))
 
     def compute(self, judgements: Judgements) -> List[float]:
         if judgements != self.test_judgements:

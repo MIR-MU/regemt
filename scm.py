@@ -42,22 +42,21 @@ class ContextualSCM(Metric):
             augmented_test_reference_corpus.corpus,
             augmented_test_translation_corpus.corpus,
         ))
-        corpus = augmented_test_reference_corpus.corpus + augmented_test_translation_corpus.corpus
-        # different dims, we can not use np (can be aligned in precedence)
-        corpus_embeddings = chain(test_ref_embs, test_trans_embs)
 
         # We only use words from test corpus, since we don't care about words from train corpus
+        corpus = augmented_test_reference_corpus.corpus + augmented_test_translation_corpus.corpus
+        embeddings = test_ref_embs + test_trans_embs
         self.dictionary = Dictionary(corpus, prune_at=None)
 
-        embeddings = KeyedVectors(self.embedder.vector_size, len(self.dictionary), dtype=float)
-        for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, corpus_embeddings),
+        w2v_model = KeyedVectors(self.embedder.vector_size, len(self.dictionary), dtype=float)
+        for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, embeddings),
                                                         desc=f'{self.label}: construct contextual embeddings'):
-            for token_index, (token, token_embedding) in enumerate(zip(augmented_tokens, tokens_embeddings)):
-                _add_word_to_kv(embeddings, None, token, token_embedding, len(self.dictionary))
+            for token, token_embedding in zip(augmented_tokens, tokens_embeddings):
+                _add_word_to_kv(w2v_model, None, token, token_embedding, len(self.dictionary))
 
-        annoy = AnnoyIndexer(embeddings, num_trees=1)
-        word_similarity_index = WordEmbeddingSimilarityIndex(embeddings, kwargs={'indexer': annoy})
-        self.similarity_matrix = SparseTermSimilarityMatrix(word_similarity_index, self.dictionary)
+        annoy = AnnoyIndexer(w2v_model, num_trees=1)
+        similarity_index = WordEmbeddingSimilarityIndex(w2v_model, kwargs={'indexer': annoy})
+        self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, self.dictionary)
 
         # Convert to a sparse matrix type that allows modification
         matrix = dok_matrix(self.similarity_matrix.matrix)
@@ -117,13 +116,15 @@ class SCM(Metric):
             self.label = self.label + "_tfidf"
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        reference_corpus, translation_corpus = map(
+        test_ref_corpus, test_trans_corpus = map(
             list, zip(*test_judgements.get_tokenized_texts(self.stopwords, desc=self.label)))
-        corpus = reference_corpus + translation_corpus
 
         # We only use words from test corpus, since we don't care about words from train corpus
+        corpus = test_ref_corpus + test_trans_corpus
         self.dictionary = Dictionary(corpus)
-        similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model)
+
+        annoy = AnnoyIndexer(self.w2v_model, num_trees=1)
+        similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model, kwargs={'indexer': annoy})
 
         if self.use_tfidf:
             from gensim.models import TfidfModel
