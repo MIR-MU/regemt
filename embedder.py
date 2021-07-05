@@ -2,7 +2,7 @@ import shelve
 from typing import List, Tuple, Iterable
 
 import torch
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 
 import numpy as np
 from bert_score import BERTScorer

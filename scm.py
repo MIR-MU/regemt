@@ -8,7 +8,7 @@ from nltk.corpus import stopwords
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 import nltk
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 from scipy.sparse import dok_matrix, csr_matrix
 
 from common import Metric, Judgements, AugmentedCorpus

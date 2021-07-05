@@ -3,7 +3,7 @@ import os
 from typing import List, Tuple, Iterable, Dict, Optional, Set, Any
 import pandas as pd
 from gensim.utils import simple_preprocess
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
 TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"

@@ -6,7 +6,7 @@ from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 from gensim.corpora import Dictionary
 import nltk
 from nltk.corpus import stopwords
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 
 from common import Metric, Judgements, AugmentedCorpus
 from embedder import ContextualEmbedder
