@@ -1,11 +1,12 @@
+from collections import defaultdict
 from typing import List
-from itertools import chain
 
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 from gensim.corpora import Dictionary
 import nltk
 from nltk.corpus import stopwords
+import numpy as np
 from tqdm.autonotebook import tqdm
 
 from common import Metric, Judgements, AugmentedCorpus
@@ -49,6 +50,52 @@ class ContextualWMD(Metric):
                                                         total=len(corpus)):
             for token, token_embedding in zip(augmented_tokens, tokens_embeddings):
                 _add_word_to_kv(self.w2v_model, None, token, token_embedding, len(dictionary))
+
+    def compute(self, judgements: Judgements) -> List[float]:
+        if judgements != self.test_judgements:
+            raise ValueError('Tne judgements are different from the test_judgements used in fit()')
+
+        out_scores = [self.w2v_model.wmdistance(reference_words, translation_words)
+                      for reference_words, translation_words
+                      in tqdm(self.zipped_test_corpus, desc=self.label)]
+        return out_scores
+
+
+class DecontextualizedWMD(Metric):
+
+    label = "WMD_decontextualized"
+    w2v_model = None
+    test_judgements = None
+    zipped_test_corpus = None
+
+    def __init__(self, tgt_lang: str):
+        self.embedder = ContextualEmbedder(lang=tgt_lang)
+        if tgt_lang != "en":
+            raise ValueError(tgt_lang)
+
+    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
+        self.test_judgements = test_judgements
+
+        test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
+        test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
+
+        self.zipped_test_corpus = list(zip(test_ref_corpus, test_trans_corpus))
+
+        # We only use words from test corpus, since we don't care about words from train corpus
+        corpus = test_ref_corpus + test_trans_corpus
+        embeddings = test_ref_embs + test_trans_embs
+
+        # We average embeddings for all occurences for a term
+        decontextualized_embeddings = defaultdict(lambda: [])
+        for tokens, tokens_embeddings in zip(corpus, embeddings):
+            for token, token_embedding in zip(tokens, tokens_embeddings):
+                decontextualized_embeddings[token].append(token_embedding)
+
+        self.w2v_model = KeyedVectors(self.embedder.vector_size, len(decontextualized_embeddings), dtype=float)
+        for token, token_embeddings in tqdm(decontextualized_embeddings.items(),
+                                            f'{self.label}: construct decontextualized embeddings'):
+            token_embedding = np.mean(token_embeddings, axis=0)
+            _add_word_to_kv(self.w2v_model, None, token, token_embedding, len(decontextualized_embeddings))
 
     def compute(self, judgements: Judgements) -> List[float]:
         if judgements != self.test_judgements:

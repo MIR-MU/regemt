@@ -5,8 +5,8 @@ import pandas as pd
 
 from bertscore import BERTScore  # noqa: F401
 from conventional_metrics import BLEU, METEOR  # noqa: F401
-from scm import SCM, ContextualSCM  # noqa: F401
-from wmd import WMD, ContextualWMD  # noqa: F401
+from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
+from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 from common import Evaluator
 
 if __name__ == '__main__':
@@ -18,6 +18,9 @@ if __name__ == '__main__':
         BERTScore(tgt_lang="en"),
         ContextualSCM(tgt_lang="en"),
         ContextualWMD(tgt_lang="en"),
+        DecontextualizedSCM(tgt_lang="en", use_tfidf=False),
+        DecontextualizedSCM(tgt_lang="en", use_tfidf=True),
+        DecontextualizedWMD(tgt_lang="en"),
         # SCM(tgt_lang="en", use_tfidf=False),
         # SCM(tgt_lang="en", use_tfidf=True),
         # SCM(tgt_lang="en", use_tfidf=False),
