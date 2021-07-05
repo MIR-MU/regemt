@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import List
+from multiprocessing import Pool
+from typing import List, Iterable, Tuple, Optional
 
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
@@ -11,6 +12,27 @@ from tqdm.autonotebook import tqdm
 
 from common import Metric, Judgements, AugmentedCorpus
 from embedder import ContextualEmbedder
+
+
+WMD_W2V_MODEL: Optional[KeyedVectors] = None
+
+
+def _get_wmds_worker(args: Tuple[List[str], List[str]]) -> float:
+    reference_words, translation_words = args
+    distance = WMD_W2V_MODEL.wmdistance(reference_words, translation_words)
+    return distance
+
+
+def get_wmds(w2v_model: KeyedVectors, tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
+    # We abuse global variables to get fast parallel WMD
+    global WMD_W2V_MODEL
+    WMD_W2V_MODEL = w2v_model
+    distances = []
+    with Pool(None) as pool:
+        for distance in pool.imap(_get_wmds_worker, tokenized_texts):
+            distances.append(distance)
+    WMD_W2V_MODEL = None
+    return distances
 
 
 class ContextualWMD(Metric):
@@ -55,9 +77,7 @@ class ContextualWMD(Metric):
         if judgements != self.test_judgements:
             raise ValueError('Tne judgements are different from the test_judgements used in fit()')
 
-        out_scores = [self.w2v_model.wmdistance(reference_words, translation_words)
-                      for reference_words, translation_words
-                      in tqdm(self.zipped_test_corpus, desc=self.label)]
+        out_scores = get_wmds(self.w2v_model, tqdm(self.zipped_test_corpus, desc=self.label))
         return out_scores
 
 
@@ -101,9 +121,7 @@ class DecontextualizedWMD(Metric):
         if judgements != self.test_judgements:
             raise ValueError('Tne judgements are different from the test_judgements used in fit()')
 
-        out_scores = [self.w2v_model.wmdistance(reference_words, translation_words)
-                      for reference_words, translation_words
-                      in tqdm(self.zipped_test_corpus, desc=self.label)]
+        out_scores = get_wmds(self.w2v_model, tqdm(self.zipped_test_corpus, desc=self.label))
         return out_scores
 
 
@@ -127,7 +145,5 @@ class WMD(Metric):
         pass
 
     def compute(self, judgements: Judgements) -> List[float]:
-        out_scores = [self.w2v_model.wmdistance(reference_words, translation_words)
-                      for reference_words, translation_words
-                      in judgements.get_tokenized_texts(self.stopwords, desc=self.label)]
+        out_scores = get_wmds(self.w2v_model, judgements.get_tokenized_texts(self.stopwords, desc=self.label))
         return out_scores
