@@ -19,11 +19,13 @@ class ContextualEmbedder:
     batch_size = 10
     device = "cuda" if torch.cuda.device_count() > 0 else "cpu"
 
-    db = shelve.open('bert-embeddings-db')
+    diskcache = shelve.open('bert-embeddings-db')
+    ramcache = dict()
 
-    def __init__(self, lang: str, use_db: bool = True):
+    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = False):
         self.scorer = BERTScorer(lang=lang)
-        self.use_db = use_db
+        self.use_diskcache = use_diskcache
+        self.use_ramcache = use_ramcache
 
     def _get_bert_embeddings_parallel(self, inputs_batch: BatchEncoding) -> Embeddings:
         with torch.no_grad():
@@ -59,14 +61,21 @@ class ContextualEmbedder:
                 assert len(tokens_nopad) == embeddings_nopad.shape[0], \
                     "'%s': num_tokens: %s" % (tokens_nopad, embeddings_nopad.shape[0])
 
-                if self.use_db:
-                    self.db[text] = (tokens_nopad, embeddings_nopad)
+                if self.use_diskcache:
+                    self.diskcache[text] = (tokens_nopad, embeddings_nopad)
+                if self.use_ramcache:
+                    self.ramcache[text] = (tokens_nopad, embeddings_nopad)
                 yield tokens_nopad, embeddings_nopad
 
     def _embed_cached(self, texts: List[Text]) -> Iterable[Tuple[Tokens, Embeddings]]:
-        assert self.use_db
+        assert self.use_diskcache
         for text in texts:
-            tokens, embeddings = self.db[text]
+            if self.use_ramcache and text in self.ramcache:
+                tokens, embeddings = self.ramcache[text]
+            else:
+                tokens, embeddings = self.diskcache[text]
+                if self.use_ramcache:
+                    self.ramcache[text] = (tokens, embeddings)
             assert embeddings.shape[0] == len(tokens)
             yield tokens, embeddings
 
@@ -77,7 +86,7 @@ class ContextualEmbedder:
         cached_text_numbers, noncached_text_numbers = set(), set()
         cached_texts, noncached_texts = [], []
         for text_number, text in enumerate(texts):
-            if self.use_db and text in self.db:
+            if self.use_diskcache and text in self.diskcache:
                 cached_text_numbers.add(text_number)
                 cached_texts.append(text)
             else:
@@ -87,8 +96,8 @@ class ContextualEmbedder:
         cached_embeddings = iter(self._embed_cached(cached_texts))
         noncached_embeddings = iter(self._embed_noncached(noncached_texts))
 
-        if self.use_db and noncached_texts:
-            self.db.sync()
+        if self.use_diskcache and noncached_texts:
+            self.diskcache.sync()
 
         texts_embeddings = []
         texts_tokens = []
