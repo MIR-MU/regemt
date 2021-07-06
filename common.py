@@ -93,12 +93,13 @@ class AugmentedCorpus:
 class Evaluator:
 
     def __init__(self, data_dir: str, lang_pair: str, metrics: List[Union[Metric, ReferenceFreeMetric]],
-                 judgements_type: str, firstn: Optional[int] = 100):
+                 judgements_type: str, firstn: Optional[int] = 100, reference_free: bool = False):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
         self.judgements_type = judgements_type
         self.firstn = firstn
+        self.reference_free = reference_free
 
         train_judgements = self.load_judgements("train")
         test_judgements = self.load_judgements("test")
@@ -110,14 +111,15 @@ class Evaluator:
         if judgements_type == "DA":
             return ["cs-en", "de-en", "fi-en", "ru-en"]
         elif judgements_type == "PSQM" or judgements_type == "MQM":
-            return ["zh-en"]
+            return ["zh-en", "en-de"]
         elif judgements_type == "catastrophic":
             return ["en-cs", "en-de", "en-ja", "en-zh"]
         else:
             raise ValueError(judgements_type)
 
     def load_judgements(self, split: str = "train",
-                        error_type: str = None, first_reference_only: bool = True) -> Judgements:
+                        error_type: str = None,
+                        first_reference_only: bool = True) -> Judgements:
         if self.judgements_type == "DA":
             # TODO: note that train and test datasets are the same now
             split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
@@ -158,11 +160,13 @@ class Evaluator:
                     break
 
         elif self.judgements_type == "MQM":
-            df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_zhen.tsv"), sep="\t")
+            df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_%s.tsv" % self.lang_pair.replace("-", "")),
+                             sep="\t")
             df = df.set_index(["system", "seg_id"])
 
-            judgements_df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_zhen.avg_seg_scores.tsv"),
-                                        sep=" ")
+            judgements_df = pd.read_csv(
+                os.path.join(self.data_dir, "mqm_newstest2020_%s.avg_seg_scores.tsv" % self.lang_pair.replace("-", "")),
+                sep=" ")
             judgements_df = judgements_df.set_index(["system", "seg_id"])
 
             df = df.join(judgements_df)
@@ -189,10 +193,11 @@ class Evaluator:
             if self.firstn is not None:
                 selected_df = selected_df.iloc[:self.firstn]
 
-            return Judgements(selected_df["source_system"].tolist(),
-                              selected_df["all_references"].tolist(),
-                              selected_df["target_system"].tolist(),
-                              selected_df["mqm_avg_score_system"].tolist())
+            src_texts = selected_df["source_system"].tolist()
+            references = selected_df["all_references"].tolist()
+            translations = selected_df["target_system"].tolist()
+            scores = selected_df["mqm_avg_score_system"].tolist()
+
         elif self.judgements_type == "catastrophic":
             df = pd.read_csv("data_dir/%s_majority_dev.tsv" % self.lang_pair.replace("-", ""),
                              sep="\t", names=["source", "translation", "judgements", "is_critical"])
@@ -201,22 +206,26 @@ class Evaluator:
             if self.firstn is not None:
                 df = df.iloc[:self.firstn]
 
-            return Judgements(df["source"].tolist(), None, df["translation"].tolist(), df["judgements"].tolist())
+            src_texts = df["source"].tolist()
+            references = None
+            translations = df["translation"].tolist()
+            scores = df["judgements"].tolist()
+
         else:
             raise ValueError(self.judgements_type)
 
-        return Judgements(src_texts, references, translations, scores)
+        return Judgements(src_texts, references if not self.reference_free else None, translations, scores)
 
     @staticmethod
     def _load_file(fpath: str) -> List[str]:
         with open(fpath) as f:
             return [line.strip() for line in f.readlines()]
 
-    def evaluate(self, reference_free: bool = False) -> Dict[str, List[float]]:
+    def evaluate(self) -> Dict[str, List[float]]:
         report = {}
         test_judgements = self.load_judgements("test")
         report["human"] = test_judgements.scores
-        if not reference_free:
+        if not self.reference_free:
             for metric in self.metrics:
                 report[metric.label] = [float(val) for val in metric.compute(test_judgements)]
         else:

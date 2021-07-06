@@ -13,9 +13,7 @@ class BERTScore(ReferenceFreeMetric):
     def __init__(self, tgt_lang: str, batch_size: int = 32, reference_free: bool = False):
         if reference_free:
             # force to use multilingual model, presume that both source and target langs are supported
-            self.scorer = BERTScorer(lang=tgt_lang,
-                                     model_type="bert-base-multilingual-cased",
-                                     rescale_with_baseline=True)
+            self.scorer = BERTScorer(lang=tgt_lang, model_type="bert-base-multilingual-cased")
         else:
             # infer used model from target language -> language of both reference and translation
             self.scorer = BERTScorer(lang=tgt_lang, rescale_with_baseline=True)
@@ -45,4 +43,3 @@ class BERTScore(ReferenceFreeMetric):
             f_scores.extend(b_f_scores.detach().cpu().tolist())
 
         return f_scores
-

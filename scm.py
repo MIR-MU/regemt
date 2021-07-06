@@ -28,13 +28,13 @@ class ContextualSCM(ReferenceFreeMetric):
     zipped_test_corpus = None
 
     def __init__(self, tgt_lang: str, reference_free: bool = False):
-        self.embedder = ContextualEmbedder(lang=tgt_lang)
+        self.embedder = ContextualEmbedder(lang=tgt_lang, reference_free=reference_free)
         self.reference_free = reference_free
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         self.test_judgements = test_judgements
         if self.reference_free:
-            test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.src_texts])
+            test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t for t in test_judgements.src_texts])
         else:
             test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
         test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
@@ -100,7 +100,8 @@ class ContextualSCM(ReferenceFreeMetric):
     def compute_ref_free(self, test_judgements: Judgements) -> List[float]:
         return self.compute(test_judgements)
 
-class DecontextualizedSCM(Metric):
+
+class DecontextualizedSCM(ReferenceFreeMetric):
 
     label = "SCM_decontextualized"
     test_judgements = None
@@ -109,10 +110,9 @@ class DecontextualizedSCM(Metric):
     dictionary = None
     tfidf = None
 
-    def __init__(self, tgt_lang: str, use_tfidf: bool):
-        self.embedder = ContextualEmbedder(lang=tgt_lang)
-        if tgt_lang != "en":
-            raise ValueError(tgt_lang)
+    def __init__(self, tgt_lang: str, use_tfidf: bool, reference_free: bool = False):
+        self.embedder = ContextualEmbedder(lang=tgt_lang, reference_free=reference_free)
+        self.reference_free = reference_free
 
         self.use_tfidf = use_tfidf
         if use_tfidf:
@@ -121,7 +121,10 @@ class DecontextualizedSCM(Metric):
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         self.test_judgements = test_judgements
 
-        test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
+        if self.reference_free:
+            test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t for t in test_judgements.src_texts])
+        else:
+            test_ref_corpus, test_ref_embs = self.embedder.tokenize_embed([t[0] for t in test_judgements.references])
         test_trans_corpus, test_trans_embs = self.embedder.tokenize_embed(test_judgements.translations)
 
         self.zipped_test_corpus = list(zip(test_ref_corpus, test_trans_corpus))
@@ -166,6 +169,9 @@ class DecontextualizedSCM(Metric):
             out_scores.append(self.similarity_matrix.inner_product(ref_index, trans_index, normalized=(True, True)))
 
         return out_scores
+
+    def compute_ref_free(self, test_judgements: Judgements) -> List[float]:
+        return self.compute(test_judgements)
 
 
 class SCM(Metric):

@@ -5,12 +5,12 @@ from matplotlib import pyplot as plt
 from bertscore import BERTScore  # noqa: F401
 from common import Evaluator
 from conventional_metrics import BLEU, METEOR  # noqa: F401
-from ood_metrics import SyntacticCompositionality
+from ood_metrics import SyntacticCompositionality  # noqa: F401
 from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
 from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 
 if __name__ == '__main__':
-    JUDGEMENTS_TYPE = "catastrophic"
+    JUDGEMENTS_TYPE = "MQM"
     NO_REFERENCE = True
 
     reports = []
@@ -20,16 +20,21 @@ if __name__ == '__main__':
     for lang_pair in langs:
         tgt_lang = lang_pair.split("-")[-1]
         metrics = [
+            ContextualWMD(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
             BERTScore(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
             ContextualSCM(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
-            ContextualWMD(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
-            # SyntacticCompositionality needs PoS tagger, that can be automatically resolved only for de + zh
+            # DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
+            # DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
+            # DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
+            # DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
+            # # SyntacticCompositionality needs PoS tagger, that can be automatically resolved only for de + zh
             # SyntacticCompositionality(tgt_lang=tgt_lang, src_lang="en", reference_free=NO_REFERENCE)
         ]
 
         print("Evaluating lang pair %s" % lang_pair)
-        evaluator = Evaluator("data_dir", lang_pair, metrics, judgements_type=JUDGEMENTS_TYPE, firstn=100)
-        report = evaluator.evaluate(reference_free=NO_REFERENCE)
+        evaluator = Evaluator("data_dir", lang_pair, metrics,
+                              judgements_type=JUDGEMENTS_TYPE, reference_free=NO_REFERENCE, firstn=100)
+        report = evaluator.evaluate()
         reports.append(report)
 
         pearson = pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs)

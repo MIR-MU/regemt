@@ -99,12 +99,12 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         if ref_free:
             base_transitions = [TransitionModel([src_text], self.src_lang) for src_text in test_judgements.src_texts]
         else:
-            base_transitions = [TransitionModel([ref_texts[0]], self.tgt_lang)
+            base_transitions = [TransitionModel(ref_texts, self.tgt_lang)
                                 for ref_texts in test_judgements.references]
 
-        trans_transitions = [TransitionModel([t_text], self.tgt_lang) for t_text in test_judgements.translations]
+        translated_model = [TransitionModel([t_text], self.tgt_lang) for t_text in test_judgements.translations]
 
-        distances = [base_t.distance(translated_t) for base_t, translated_t in zip(base_transitions, trans_transitions)]
+        distances = [base_t.distance(translated_t) for base_t, translated_t in zip(base_transitions, translated_model)]
 
         return distances
 

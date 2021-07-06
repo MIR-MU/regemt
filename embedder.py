@@ -15,7 +15,7 @@ Embeddings = np.ndarray
 
 
 class ContextualEmbedder:
-    vector_size = 768
+    vector_size: int
     gpus = [0]  # TODO
     batch_size = 10
     device = "cuda" if torch.cuda.device_count() > 0 else "cpu"
@@ -24,8 +24,8 @@ class ContextualEmbedder:
     ramcaches: Dict[Language, Dict[Text, Tuple[Tokens, Embeddings]]] = dict()
     scorers: Dict[Language, BERTScorer] = dict()
 
-    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = True):
-        self.lang = lang
+    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = True, reference_free: bool = False):
+        self.lang = lang if not reference_free else "multi"  # lang other than en and zh retrieve multilingual model
         self.vector_size = self.scorer._model.config.hidden_size
         self.use_diskcache = use_diskcache
         self.use_ramcache = use_ramcache
