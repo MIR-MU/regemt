@@ -25,6 +25,7 @@ def _get_wmds_worker(args: Tuple[List[str], List[str]]) -> float:
 
 
 def get_wmds(w2v_model: KeyedVectors, tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
+    w2v_model.fill_norms()
     global WMD_W2V_MODEL
     WMD_W2V_MODEL = w2v_model
     distances = []
@@ -71,7 +72,7 @@ def _get_wmds_tfidf_worker(args: Tuple[List[str], List[str]]) -> float:
         nbow = [
             (dictionary.token2id[WMD_DICTIONARY.id2token[term_id]], term_weight)
             for term_id, term_weight
-            in WMD_TFIDF_MODEL[WMD_DICTIONARY.doc2bow(document)]
+            in WMD_TFIDF_MODEL.__getitem__(WMD_DICTIONARY.doc2bow(document), eps=0.0)
         ]
         doc_len = len(document)
         for idx, freq in nbow:
@@ -87,6 +88,7 @@ def _get_wmds_tfidf_worker(args: Tuple[List[str], List[str]]) -> float:
 
 def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model: TfidfModel,
                    tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
+    w2v_model.fill_norms()
     global WMD_W2V_MODEL, WMD_DICTIONARY, WMD_TFIDF_MODEL
     WMD_W2V_MODEL = w2v_model
     WMD_DICTIONARY = dictionary

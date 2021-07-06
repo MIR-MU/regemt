@@ -98,7 +98,7 @@ class DecontextualizedWMD(ReferenceFreeMetric):
 
         if self.use_tfidf:
             self.dictionary = Dictionary(corpus)
-            self.tfidf = TfidfModel(dictionary=self.dictionary)
+            self.tfidf = TfidfModel(dictionary=self.dictionary, smartirs='nfx')
 
         # We average embeddings for all occurences for a term
         decontextualized_embeddings = defaultdict(lambda: [])
@@ -161,7 +161,7 @@ class WMD(Metric):
 
         if self.use_tfidf:
             self.dictionary = Dictionary(corpus)
-            self.tfidf = TfidfModel(dictionary=self.dictionary)
+            self.tfidf = TfidfModel(dictionary=self.dictionary, smartirs='nfx')
 
     def compute(self, judgements: Judgements) -> List[float]:
         if judgements != self.test_judgements:
