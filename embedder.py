@@ -24,19 +24,21 @@ class ContextualEmbedder:
     ramcaches: Dict[Language, Dict[Text, Tuple[Tokens, Embeddings]]] = dict()
     scorers: Dict[Language, BERTScorer] = dict()
 
-    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = True):
+    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = False):
         self.lang = lang
         self.use_diskcache = use_diskcache
         self.use_ramcache = use_ramcache
 
     @property
     def diskcache(self) -> shelve.Shelf:
+        assert self.use_diskcache
         if self.lang not in self.diskcaches:
             self.diskcaches[self.lang] = shelve.open(f'embedder-diskcache-{self.lang}')
         return self.diskcaches[self.lang]
 
     @property
     def ramcache(self) -> Dict[Text, Tuple[Tokens, Embeddings]]:
+        assert self.use_ramcache
         if self.lang not in self.ramcaches:
             self.ramcaches[self.lang] = dict()
         return self.ramcaches[self.lang]

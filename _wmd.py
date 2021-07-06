@@ -21,6 +21,7 @@ def _get_wmds_worker(args: Tuple[List[str], List[str]]) -> float:
 
 
 def get_wmds(w2v_model: KeyedVectors, tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
+    w2v_model.fill_norms()
     global WMD_W2V_MODEL
     WMD_W2V_MODEL = w2v_model
     distances = []
@@ -83,6 +84,7 @@ def _get_wmds_tfidf_worker(args: Tuple[List[str], List[str]]) -> float:
 
 def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model: TfidfModel,
                    tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
+    w2v_model.fill_norms()
     global WMD_W2V_MODEL, WMD_DICTIONARY, WMD_TFIDF_MODEL
     WMD_W2V_MODEL = w2v_model
     WMD_DICTIONARY = dictionary
