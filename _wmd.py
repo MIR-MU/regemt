@@ -8,6 +8,10 @@ from pyemd import emd
 from scipy.spatial.distance import cdist
 import numpy as np
 
+from multiprocessing import set_start_method
+# default on some OSs ("spawn") does not allow to access the shared objects
+set_start_method("fork")
+
 
 WMD_W2V_MODEL: Optional[KeyedVectors] = None
 WMD_DICTIONARY: Optional[Dictionary] = None

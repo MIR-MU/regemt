@@ -112,8 +112,7 @@ class Evaluator:
         elif judgements_type == "PSQM" or judgements_type == "MQM":
             return ["zh-en"]
         elif judgements_type == "catastrophic":
-            # return ["encs", "ende", "enja", "enzh"]
-            return ["ende"]
+            return ["en-cs", "en-de", "en-ja", "en-zh"]
         else:
             raise ValueError(judgements_type)
 
@@ -195,15 +194,14 @@ class Evaluator:
                               selected_df["target_system"].tolist(),
                               selected_df["mqm_avg_score_system"].tolist())
         elif self.judgements_type == "catastrophic":
-            pass
-            df = pd.read_csv("data_dir/%s_majority_dev.tsv" % self.lang_pair,
-                             sep="\t", names=["en", "other", "judgements", "is_critical"])
+            df = pd.read_csv("data_dir/%s_majority_dev.tsv" % self.lang_pair.replace("-", ""),
+                             sep="\t", names=["source", "translation", "judgements", "is_critical"])
             df.judgements = df.judgements.apply(lambda j:
                                                 sum(map(int, j.replace("[", "").replace("]", "").split(", "))))
-            # if self.firstn is not None:
-            #     df = df.iloc[:self.firstn]
+            if self.firstn is not None:
+                df = df.iloc[:self.firstn]
 
-            return Judgements(df["en"].tolist(), None, df["other"].tolist(), df["judgements"].tolist())
+            return Judgements(df["source"].tolist(), None, df["translation"].tolist(), df["judgements"].tolist())
         else:
             raise ValueError(self.judgements_type)
 
