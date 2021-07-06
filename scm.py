@@ -6,6 +6,7 @@ from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
 from nltk.corpus import stopwords
+from gensim.models import TfidfModel
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 import nltk
@@ -140,7 +141,6 @@ class DecontextualizedSCM(Metric):
         similarity_index = WordEmbeddingSimilarityIndex(w2v_model, kwargs={'indexer': annoy})
 
         if self.use_tfidf:
-            from gensim.models import TfidfModel
             self.tfidf = TfidfModel(dictionary=self.dictionary)
             self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, self.dictionary, self.tfidf)
         else:
@@ -196,7 +196,6 @@ class SCM(Metric):
         similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model, kwargs={'indexer': annoy})
 
         if self.use_tfidf:
-            from gensim.models import TfidfModel
             self.tfidf = TfidfModel(dictionary=self.dictionary)
             self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, self.dictionary, self.tfidf)
         else:
