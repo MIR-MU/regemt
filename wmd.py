@@ -1,7 +1,7 @@
 from collections import defaultdict
-from multiprocessing import Pool
-from typing import List, Iterable, Tuple, Optional
+from typing import List
 
+from gensim.models import TfidfModel
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 from gensim.corpora import Dictionary
@@ -12,27 +12,7 @@ from tqdm.autonotebook import tqdm
 
 from common import Metric, Judgements, AugmentedCorpus
 from embedder import ContextualEmbedder
-
-
-WMD_W2V_MODEL: Optional[KeyedVectors] = None
-
-
-def _get_wmds_worker(args: Tuple[List[str], List[str]]) -> float:
-    reference_words, translation_words = args
-    distance = WMD_W2V_MODEL.wmdistance(reference_words, translation_words)
-    return distance
-
-
-def get_wmds(w2v_model: KeyedVectors, tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
-    # We abuse global variables to get fast parallel WMD
-    global WMD_W2V_MODEL
-    WMD_W2V_MODEL = w2v_model
-    distances = []
-    with Pool(None) as pool:
-        for distance in pool.imap(_get_wmds_worker, tokenized_texts):
-            distances.append(distance)
-    WMD_W2V_MODEL = None
-    return distances
+from _wmd import get_wmds, get_wmds_tfidf
 
 
 class ContextualWMD(Metric):
@@ -86,12 +66,18 @@ class DecontextualizedWMD(Metric):
     label = "WMD_decontextualized"
     w2v_model = None
     test_judgements = None
+    dictionary = None
+    tfidf = None
     zipped_test_corpus = None
 
-    def __init__(self, tgt_lang: str):
+    def __init__(self, tgt_lang: str, use_tfidf: bool):
         self.embedder = ContextualEmbedder(lang=tgt_lang)
         if tgt_lang != "en":
             raise ValueError(tgt_lang)
+
+        self.use_tfidf = use_tfidf
+        if use_tfidf:
+            self.label = self.label + "_tfidf"
 
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
         self.test_judgements = test_judgements
@@ -104,6 +90,10 @@ class DecontextualizedWMD(Metric):
         # We only use words from test corpus, since we don't care about words from train corpus
         corpus = test_ref_corpus + test_trans_corpus
         embeddings = test_ref_embs + test_trans_embs
+
+        if self.use_tfidf:
+            self.dictionary = Dictionary(corpus)
+            self.tfidf = TfidfModel(dictionary=self.dictionary)
 
         # We average embeddings for all occurences for a term
         decontextualized_embeddings = defaultdict(lambda: [])
@@ -121,7 +111,11 @@ class DecontextualizedWMD(Metric):
         if judgements != self.test_judgements:
             raise ValueError('Tne judgements are different from the test_judgements used in fit()')
 
-        out_scores = get_wmds(self.w2v_model, tqdm(self.zipped_test_corpus, desc=self.label))
+        tokenized_texts = tqdm(self.zipped_test_corpus, desc=self.label)
+        if self.use_tfidf:
+            out_scores = get_wmds_tfidf(self.w2v_model, self.dictionary, self.tfidf, tokenized_texts)
+        else:
+            out_scores = get_wmds(self.w2v_model, tokenized_texts)
         return out_scores
 
 
@@ -129,21 +123,45 @@ class WMD(Metric):
 
     label = "WMD"
     w2v_model = None
+    dictionary = None
+    tfidf = None
+    test_judgements = None
     stopwords = None
 
-    def __init__(self, tgt_lang: str):
+    def __init__(self, tgt_lang: str, use_tfidf: bool):
         if tgt_lang == "en":
             self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-            self.w2v_model.init_sims(replace=True)
             nltk.download('stopwords')
             self.stopwords = stopwords.words('english')
-
         else:
             raise ValueError(tgt_lang)
 
+        self.use_tfidf = use_tfidf
+        if use_tfidf:
+            self.label = self.label + "_tfidf"
+
     def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        pass
+        self.test_judgements = test_judgements
+
+        test_ref_corpus, test_trans_corpus = [], []
+        for reference, translation in test_judgements.get_tokenized_texts(self.stopwords, desc=self.label):
+            test_ref_corpus.append(reference)
+            test_trans_corpus.append(reference)
+
+        # We only use words from test corpus, since we don't care about words from train corpus
+        corpus = test_ref_corpus + test_trans_corpus
+
+        if self.use_tfidf:
+            self.dictionary = Dictionary(corpus)
+            self.tfidf = TfidfModel(dictionary=self.dictionary)
 
     def compute(self, judgements: Judgements) -> List[float]:
-        out_scores = get_wmds(self.w2v_model, judgements.get_tokenized_texts(self.stopwords, desc=self.label))
+        if judgements != self.test_judgements:
+            raise ValueError('Tne judgements are different from the test_judgements used in fit()')
+
+        tokenized_texts = judgements.get_tokenized_texts(self.stopwords, desc=self.label)
+        if self.use_tfidf:
+            out_scores = get_wmds_tfidf(self.w2v_model, self.dictionary, self.tfidf, tokenized_texts)
+        else:
+            out_scores = get_wmds(self.w2v_model, tokenized_texts)
         return out_scores

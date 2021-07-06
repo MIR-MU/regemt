@@ -20,11 +20,12 @@ if __name__ == '__main__':
         ContextualWMD(tgt_lang="en"),
         DecontextualizedSCM(tgt_lang="en", use_tfidf=False),
         DecontextualizedSCM(tgt_lang="en", use_tfidf=True),
-        DecontextualizedWMD(tgt_lang="en"),
+        DecontextualizedWMD(tgt_lang="en", use_tfidf=False),
+        DecontextualizedWMD(tgt_lang="en", use_tfidf=True),
         # SCM(tgt_lang="en", use_tfidf=False),
         # SCM(tgt_lang="en", use_tfidf=True),
-        # SCM(tgt_lang="en", use_tfidf=False),
-        # WMD(tgt_lang="en"),
+        # WMD(tgt_lang="en", use_tfidf=False),
+        # WMD(tgt_lang="en", use_tfidf=True),
     ]
     correlations = {m.label: {} for m in metrics}
     correlations["human"] = {}
