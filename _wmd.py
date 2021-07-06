@@ -68,7 +68,7 @@ def _get_wmds_tfidf_worker(args: Tuple[List[str], List[str]]) -> float:
         nbow = [
             (dictionary.token2id[WMD_DICTIONARY.id2token[term_id]], term_weight)
             for term_id, term_weight
-            in WMD_TFIDF_MODEL[WMD_DICTIONARY.doc2bow(document)]
+            in WMD_TFIDF_MODEL.__getitem__(WMD_DICTIONARY.doc2bow(document), eps=0.0)
         ]
         doc_len = len(document)
         for idx, freq in nbow:
