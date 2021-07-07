@@ -18,22 +18,22 @@ if __name__ == '__main__':
     langs = Evaluator.langs_for_judgements(JUDGEMENTS_TYPE)
 
     for lang_pair in langs:
-        tgt_lang = lang_pair.split("-")[-1]
+        src_lang, tgt_lang = lang_pair.split("-")
         metrics = [
             ContextualWMD(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
             BERTScore(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
-            ContextualSCM(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
-            # DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
-            # DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
-            # DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
-            # DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
+#             ContextualSCM(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
+            DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
+            DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
+            DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
+            DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
             # # SyntacticCompositionality needs PoS tagger, that can be automatically resolved only for de + zh
-            # SyntacticCompositionality(tgt_lang=tgt_lang, src_lang="en", reference_free=NO_REFERENCE)
+            SyntacticCompositionality(tgt_lang=tgt_lang, src_lang=src_lang, reference_free=NO_REFERENCE)
         ]
 
         print("Evaluating lang pair %s" % lang_pair)
         evaluator = Evaluator("data_dir", lang_pair, metrics,
-                              judgements_type=JUDGEMENTS_TYPE, reference_free=NO_REFERENCE, firstn=100)
+                              judgements_type=JUDGEMENTS_TYPE, reference_free=NO_REFERENCE, firstn=100000)
         report = evaluator.evaluate()
         reports.append(report)
 
