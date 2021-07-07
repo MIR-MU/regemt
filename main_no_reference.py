@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
         print("Evaluating lang pair %s" % lang_pair)
         evaluator = Evaluator("data_dir", lang_pair, metrics,
-                              judgements_type=JUDGEMENTS_TYPE, reference_free=NO_REFERENCE, firstn=100000)
+                              judgements_type=JUDGEMENTS_TYPE, reference_free=NO_REFERENCE, firstn=None)
         report = evaluator.evaluate()
         reports.append(report)
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
         sns.heatmap(pearson, annot=True)
         plt.tight_layout()
         plt.show()
-        plt.savefig('heatmap-pearson-%s.png' % lang_pair)
+        plt.savefig('heatmap_no_reference-pearson-%s.png' % lang_pair)
         plt.clf()
 
         spearman = pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs)
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         sns.heatmap(spearman, annot=True)
         plt.show()
         plt.tight_layout()
-        plt.savefig('heatmap-spearman-%s.png' % lang_pair)
+        plt.savefig('heatmap_no_reference-spearman-%s.png' % lang_pair)
         plt.clf()
 
     print("Done")
