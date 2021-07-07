@@ -126,7 +126,7 @@ class DecontextualizedSCM(ReferenceFreeMetric):
             tfidf = TfidfModel(dictionary=dictionary)
             similarity_matrix = SparseTermSimilarityMatrix(similarity_index, dictionary, tfidf)
         else:
-            self.similarity_matrix = SparseTermSimilarityMatrix(similarity_index, dictionary)
+            similarity_matrix = SparseTermSimilarityMatrix(similarity_index, dictionary)
 
         out_scores = []
         zipped_corpus = list(zip(ref_corpus, trans_corpus))
