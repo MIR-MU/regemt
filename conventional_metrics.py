@@ -10,9 +10,6 @@ from nltk.translate.meteor_score import meteor_score
 
 class BLEU(Metric):
 
-    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        pass
-
     label = "BLEU"
 
     def compute(self, judgements: Judgements) -> List[float]:
@@ -24,13 +21,10 @@ class BLEU(Metric):
 
 class METEOR(Metric):
 
+    label = "METEOR"
+
     def __init__(self):
         nltk.download('wordnet')
-
-    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        pass
-
-    label = "METEOR"
 
     def compute(self, judgements: Judgements) -> List[float]:
         return [meteor_score(expected_items, actual_item)

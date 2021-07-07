@@ -1,4 +1,4 @@
-from multiprocessing import Pool
+from multiprocessing import get_context
 from typing import List, Iterable, Tuple, Optional
 
 from gensim.models import TfidfModel
@@ -7,10 +7,6 @@ from gensim.models.keyedvectors import KeyedVectors
 from pyemd import emd
 from scipy.spatial.distance import cdist
 import numpy as np
-
-from multiprocessing import set_start_method
-# default on some OSs ("spawn") does not allow to access the shared objects
-set_start_method("fork")
 
 
 WMD_W2V_MODEL: Optional[KeyedVectors] = None
@@ -29,7 +25,8 @@ def get_wmds(w2v_model: KeyedVectors, tokenized_texts: Iterable[Tuple[List[str],
     global WMD_W2V_MODEL
     WMD_W2V_MODEL = w2v_model
     distances = []
-    with Pool(None) as pool:
+    # default context on some OSs ("spawn") does not allow to access the shared objects
+    with get_context('fork').Pool(None) as pool:
         for distance in pool.imap(_get_wmds_worker, tokenized_texts):
             distances.append(distance)
     WMD_W2V_MODEL = None
@@ -94,7 +91,8 @@ def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model:
     WMD_DICTIONARY = dictionary
     WMD_TFIDF_MODEL = tfidf_model
     distances = []
-    with Pool(None) as pool:
+    # default context on some OSs ("spawn") does not allow to access the shared objects
+    with get_context('fork').Pool(None) as pool:
         for distance in pool.imap(_get_wmds_tfidf_worker, tokenized_texts):
             distances.append(distance)
     WMD_W2V_MODEL = None

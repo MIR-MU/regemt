@@ -19,9 +19,6 @@ class BERTScore(ReferenceFreeMetric):
             self.scorer = BERTScorer(lang=tgt_lang, rescale_with_baseline=True)
         self.batch_size = batch_size
 
-    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
-        pass
-
     def compute(self, judgements: Judgements) -> List[float]:
         f_scores = []
 

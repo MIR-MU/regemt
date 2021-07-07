@@ -47,7 +47,7 @@ class Judgements:
 class Metric(abc.ABC):
     label: str = 'None'
 
-    def fit(self, train_judgements: Judgements, test_judgements: Judgements):
+    def fit(self, train_judgements: Judgements):
         pass
 
     @abc.abstractmethod
@@ -102,9 +102,8 @@ class Evaluator:
         self.reference_free = reference_free
 
         train_judgements = self.load_judgements("train")
-        test_judgements = self.load_judgements("test")
         for metric in self.metrics:
-            metric.fit(train_judgements, test_judgements)
+            metric.fit(train_judgements)
 
     @staticmethod
     def langs_for_judgements(judgements_type: str):
