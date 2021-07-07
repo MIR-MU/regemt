@@ -28,7 +28,7 @@ if __name__ == '__main__':
             DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
             DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
             # # SyntacticCompositionality needs PoS tagger, that can be automatically resolved only for de + zh
-            SyntacticCompositionality(tgt_lang=tgt_lang, src_lang=src_lang, reference_free=NO_REFERENCE)
+            # SyntacticCompositionality(tgt_lang=tgt_lang, src_lang=src_lang, reference_free=NO_REFERENCE)
         ]
 
         print("Evaluating lang pair %s" % lang_pair)
