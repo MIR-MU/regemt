@@ -59,7 +59,7 @@ class TransitionModel:
         elif lang == "en":
             model_id = "en_core_web_trf"
         elif lang == "de":
-            model_id = "de_core_news_trf"
+            model_id = "de_dep_news_trf"
         elif lang == "zh":
             model_id = "zh_core_web_trf"
         else:
