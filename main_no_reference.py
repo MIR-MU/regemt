@@ -22,7 +22,7 @@ if __name__ == '__main__':
         metrics = [
             ContextualWMD(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
             BERTScore(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
-#             ContextualSCM(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
+            # ContextualSCM(tgt_lang=tgt_lang, reference_free=NO_REFERENCE),
             DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
             DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=True, reference_free=NO_REFERENCE),
             DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=False, reference_free=NO_REFERENCE),
