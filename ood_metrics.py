@@ -97,18 +97,18 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         if reference_free:
             self.src_lang = src_lang
 
-    def compute(self, test_judgements: Judgements, ref_free: bool = False) -> List[float]:
+    def compute(self, judgements: Judgements, ref_free: bool = False) -> List[float]:
         if ref_free:
-            base_transitions = [TransitionModel([src_text], self.src_lang) for src_text in test_judgements.src_texts]
+            base_transitions = [TransitionModel([src_text], self.src_lang) for src_text in judgements.src_texts]
         else:
             base_transitions = [TransitionModel(ref_texts, self.tgt_lang)
-                                for ref_texts in test_judgements.references]
+                                for ref_texts in judgements.references]
 
-        translated_model = [TransitionModel([t_text], self.tgt_lang) for t_text in test_judgements.translations]
+        translated_model = [TransitionModel([t_text], self.tgt_lang) for t_text in judgements.translations]
 
         distances = [base_t.distance(translated_t) for base_t, translated_t in zip(base_transitions, translated_model)]
 
         return distances
 
-    def compute_ref_free(self, test_judgements: Judgements) -> List[float]:
-        return self.compute(test_judgements, ref_free=True)
+    def compute_ref_free(self, judgements: Judgements) -> List[float]:
+        return self.compute(judgements, ref_free=True)
