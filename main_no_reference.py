@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
         print("Evaluating lang pair %s" % lang_pair)
         evaluator = Evaluator("data_dir", lang_pair, metrics,
-                              judgements_type=JUDGEMENTS_TYPE, reference_free=NO_REFERENCE, firstn=1000)
+                              judgements_type=JUDGEMENTS_TYPE, reference_free=NO_REFERENCE, firstn=100)
         report = evaluator.evaluate()
         reports.append(report)
 
