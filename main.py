@@ -21,7 +21,7 @@ if __name__ == '__main__':
                 BLEU(),
                 METEOR(),
                 BERTScore(tgt_lang=tgt_lang),
-                ContextualSCM(tgt_lang=tgt_lang),
+                # ContextualSCM(tgt_lang=tgt_lang),
                 ContextualWMD(tgt_lang=tgt_lang),
                 DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=False),
                 DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=True),
