@@ -10,38 +10,43 @@ from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
 from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 
 if __name__ == '__main__':
+    NO_REFERENCE = False
+    FIRSTN = 100
+
     for judgements_type in ['DA', 'MQM']:
         reports = []
-
         langs = Evaluator.langs_for_judgements(judgements_type)
 
         for lang_pair in langs:
-            tgt_lang = lang_pair.split("-")[-1]
+            src_lang, tgt_lang = lang_pair.split("-")
+            if tgt_lang != 'en':
+                continue
+
             metrics = [
                 BLEU(),
                 METEOR(),
-                BERTScore(tgt_lang=tgt_lang),
-                # ContextualSCM(tgt_lang=tgt_lang),
-                ContextualWMD(tgt_lang=tgt_lang),
-                DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=False),
-                DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=True),
-                DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=False),
-                DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=True),
+                BERTScore(tgt_lang="en"),
+                # ContextualSCM(tgt_lang="en", reference_free=NO_REFERENCE),
+                ContextualWMD(tgt_lang="en", reference_free=NO_REFERENCE),
+                DecontextualizedSCM(tgt_lang="en", use_tfidf=False, reference_free=NO_REFERENCE),
+                DecontextualizedSCM(tgt_lang="en", use_tfidf=True, reference_free=NO_REFERENCE),
+                DecontextualizedWMD(tgt_lang="en", use_tfidf=False, reference_free=NO_REFERENCE),
+                DecontextualizedWMD(tgt_lang="en", use_tfidf=True, reference_free=NO_REFERENCE),
                 # SCM(tgt_lang="en", use_tfidf=False),
                 # SCM(tgt_lang="en", use_tfidf=True),
                 # WMD(tgt_lang="en", use_tfidf=False),
                 # WMD(tgt_lang="en", use_tfidf=True),
-                # SyntacticCompositionality needs PoS tagger, that can be automatically resolved only for de + zh
-                # SyntacticCompositionality(tgt_lang=tgt_lang, src_lang="en", reference_free=NO_REFERENCE)
             ]
 
             print("Evaluating lang pair %s" % lang_pair)
-            evaluator = Evaluator("data_dir", lang_pair, metrics, judgements_type=judgements_type, firstn=100)
+            evaluator = Evaluator("data_dir", lang_pair, metrics,
+                                  judgements_type=judgements_type,
+                                  reference_free=NO_REFERENCE, firstn=FIRSTN)
             report = evaluator.evaluate()
             reports.append(report)
 
             pearson = pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs)
-            assert pearson.gt(0.001).all(axis=None), pearson
+            assert pearson.gt(0.2).all(axis=None), pearson
             sns.heatmap(pearson, annot=True)
             plt.tight_layout()
             plt.show()
@@ -49,7 +54,7 @@ if __name__ == '__main__':
             plt.clf()
 
             spearman = pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs)
-            assert spearman.gt(0.001).all(axis=None), spearman
+            assert spearman.gt(0.2).all(axis=None), spearman
             sns.heatmap(spearman, annot=True)
             plt.show()
             plt.tight_layout()
