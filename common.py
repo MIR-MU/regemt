@@ -4,6 +4,7 @@ from typing import List, Tuple, Iterable, Dict, Optional, Set, Any, Union
 import pandas as pd
 from gensim.utils import simple_preprocess
 from tqdm.autonotebook import tqdm
+import sklearn.utils
 
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
 TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
@@ -116,9 +117,8 @@ class Evaluator:
         else:
             raise ValueError(judgements_type)
 
-    def load_judgements(self, split: str = "train",
-                        error_type: str = None,
-                        first_reference_only: bool = True) -> Judgements:
+    def load_judgements(self, split: str = "train", error_type: str = None, first_reference_only: bool = True,
+                        shuffle: bool = True, shuffle_random_state: int = 42) -> Judgements:
         if self.judgements_type == "DA":
             # TODO: note that train and test datasets are the same now
             split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
@@ -155,8 +155,6 @@ class Evaluator:
                         break  # we want variable translation pairs, but if more is needed, we can remove this
                 else:
                     print("No reference judgements: %s" % i)
-                if self.firstn is not None and len(src_texts) >= self.firstn:
-                    break
 
         elif self.judgements_type == "MQM":
             df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_%s.tsv" % self.lang_pair.replace("-", "")),
@@ -189,8 +187,6 @@ class Evaluator:
                 selected_df = translated_clean_df
             else:
                 selected_df = translated_clean_df[translated_clean_df["category_system"] == error_type]
-            if self.firstn is not None:
-                selected_df = selected_df.iloc[:self.firstn]
 
             src_texts = selected_df["source_system"].tolist()
             references = selected_df["all_references"].tolist()
@@ -202,9 +198,6 @@ class Evaluator:
                              sep="\t", names=["source", "translation", "judgements", "is_critical"])
             df.judgements = df.judgements.apply(lambda j:
                                                 sum(map(int, j.replace("[", "").replace("]", "").split(", "))))
-            if self.firstn is not None:
-                df = df.iloc[:self.firstn]
-
             src_texts = df["source"].tolist()
             references = None
             translations = df["translation"].tolist()
@@ -213,7 +206,23 @@ class Evaluator:
         else:
             raise ValueError(self.judgements_type)
 
-        return Judgements(src_texts, references if not self.reference_free else None, translations, scores)
+        if self.reference_free:
+            references = None
+
+        if shuffle:
+            src_texts, translations, scores = sklearn.utils.shuffle(
+                src_texts, translations, scores, random_state=shuffle_random_state)
+            if references is not None:
+                references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
+
+        if self.firstn is not None:
+            src_texts = src_texts[:self.firstn]
+            if references is not None:
+                references = references[:self.firstn]
+            translations = translations[:self.firstn]
+            scores = scores[:self.firstn]
+
+        return Judgements(src_texts, references, translations, scores)
 
     @staticmethod
     def _load_file(fpath: str) -> List[str]:
