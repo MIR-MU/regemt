@@ -43,7 +43,7 @@ if __name__ == '__main__':
             reports.append(report)
 
             pearson = pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs)
-            assert pearson.gt(0.1).all(axis=None), pearson
+            assert pearson['human'].gt(0.1).all(), pearson
             sns.heatmap(pearson, annot=True)
             plt.tight_layout()
             plt.show()
@@ -51,8 +51,7 @@ if __name__ == '__main__':
             plt.clf()
 
             spearman = pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs)
-            assert spearman.gt(0.1).all(axis=None), spearman
-            sns.heatmap(spearman, annot=True)
+            assert spearman['human'].gt(0.1).all(), spearman
             plt.show()
             plt.tight_layout()
             plt.savefig('heatmap_no_reference-spearman-%s-%s.png' % (judgements_type, lang_pair))
