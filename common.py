@@ -118,11 +118,9 @@ class Evaluator:
             raise ValueError(judgements_type)
 
     def load_judgements(self, split: str = "train", error_type: str = None, first_reference_only: bool = True,
-                        shuffle: bool = True, shuffle_random_state: int = 42) -> Judgements:
+                        shuffle: bool = True, shuffle_random_state: int = 42, split_ratio: float = 0.8) -> Judgements:
         if self.judgements_type == "DA":
-            # TODO: note that train and test datasets are the same now
-            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
-                                               else TEST_DATASET_FILE_TEMPLATE)
+            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
             references = [[ref] for ref in self._load_file(split_file_template % ("reference", self.lang_pair))]
             translations = self._load_file(split_file_template % ("mt-system", self.lang_pair))
@@ -215,12 +213,23 @@ class Evaluator:
             if references is not None:
                 references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
 
+        def slice_data(indexes: slice) -> None:
+            nonlocal src_texts, references, translations, scores
+            src_texts = src_texts[indexes]
+            references = references[indexes] if references is not None else None
+            translations = translations[indexes]
+            scores = scores[indexes]
+
+        pivot = int(round(len(src_texts) * split_ratio))
+        if split == "train":
+            slice_data(slice(pivot))
+        elif split == "test":
+            slice_data(slice(pivot, None))
+        else:
+            raise ValueError(split)
+
         if self.firstn is not None:
-            src_texts = src_texts[:self.firstn]
-            if references is not None:
-                references = references[:self.firstn]
-            translations = translations[:self.firstn]
-            scores = scores[:self.firstn]
+            slice_data(slice(self.firstn))
 
         return Judgements(src_texts, references, translations, scores)
 
