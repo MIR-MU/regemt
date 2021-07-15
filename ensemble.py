@@ -30,7 +30,7 @@ class Regression(ReferenceFreeMetric):
         if reference_free:
             metrics = [metric for metric in metrics if isinstance(metric, ReferenceFreeMetric)]
 
-        self.metrics = metrics
+        self.metrics = list(metrics)
         self.reference_free = reference_free
 
     def _get_metric_features(self, judgements: Judgements) -> List[Features]:
