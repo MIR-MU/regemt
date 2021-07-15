@@ -1,8 +1,9 @@
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Tuple, Optional
 
 from common import ReferenceFreeMetric, Judgements
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.base import RegressorMixin as Model
 from sklearn.linear_model import (
     LinearRegression,
     SGDRegressor,
@@ -24,7 +25,7 @@ Features = Tuple[Feature, ...]
 class Regression(ReferenceFreeMetric):
 
     label = "Regression"
-    model = None
+    model: Optional[Model] = None
 
     def __init__(self, metrics: Iterable[ReferenceFreeMetric], reference_free: bool = False):
         if reference_free:
@@ -59,7 +60,7 @@ class Regression(ReferenceFreeMetric):
             features.append((*metric_features, *other_features))
         return features
 
-    def _get_models(self) -> Iterable:
+    def _get_models(self) -> Iterable[Model]:
         models = [
             LinearRegression(),
             SGDRegressor(),
