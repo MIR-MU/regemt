@@ -1,10 +1,14 @@
 import abc
 import os
 from typing import List, Tuple, Iterable, Dict, Optional, Set, Any, Union
+import logging
+
 import pandas as pd
 from gensim.utils import simple_preprocess
 from tqdm.autonotebook import tqdm
 import sklearn.utils
+
+LOGGER = logging.getLogger(__name__)
 
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
 TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
@@ -238,7 +242,12 @@ class Evaluator:
             raise ValueError(split)
 
         if self.firstn is not None:
-            judgements = judgements[:self.firstn]
+            if self.firstn > len(judgements):
+                message = 'Requested firstn={} judgements, but only {} exist in {}-{}'
+                message = message.format(self.firstn, len(judgements), self.judgements_type, split)
+                LOGGER.warning(message)
+            else:
+                judgements = judgements[:self.firstn]
 
         return judgements
 

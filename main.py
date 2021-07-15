@@ -1,4 +1,5 @@
 import os
+import logging
 
 import pandas as pd
 import seaborn as sns
@@ -10,10 +11,11 @@ from ood_metrics import SyntacticCompositionality  # noqa: F401
 from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
 from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 
+LOGGER = logging.getLogger(__name__)
 
-if __name__ == '__main__':
-    FIRSTN = 100
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+def main():
+    firstn = 100
 
     for reference_free in [True, False]:
         for judgements_type in ["MQM"]:
@@ -45,10 +47,10 @@ if __name__ == '__main__':
                     metrics.append(SyntacticCompositionality(src_lang=src_lang, tgt_lang=tgt_lang,
                                                              reference_free=reference_free))
 
-                print("Evaluating lang pair %s" % lang_pair)
+                LOGGER.info("Evaluating lang pair %s" % lang_pair)
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
                                       judgements_type=judgements_type,
-                                      reference_free=reference_free, firstn=FIRSTN)
+                                      reference_free=reference_free, firstn=firstn)
                 report = evaluator.evaluate()
                 reports.append(report)
 
@@ -68,4 +70,10 @@ if __name__ == '__main__':
                             (judgements_type, reference_free, lang_pair))
                 plt.clf()
 
-    print("Done")
+    LOGGER.info("Done")
+
+
+if __name__ == '__main__':
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+    main()
