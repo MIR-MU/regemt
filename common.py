@@ -13,7 +13,18 @@ TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
 class Judgements:
 
     def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
-                 translations: List[str], scores: List[float]):
+                 translations: List[str], scores: List[float], shuffle: bool = True,
+                 shuffle_random_state: int = 42):
+        assert references is None or len(references) == len(src_texts)
+        assert len(translations) == len(src_texts)
+        assert len(scores) == len(src_texts)
+
+        if shuffle:
+            src_texts, translations, scores = sklearn.utils.shuffle(
+                src_texts, translations, scores, random_state=shuffle_random_state)
+            if references is not None:
+                references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
+
         self.src_texts = src_texts
         self.references = references
         self.translations = translations
@@ -27,8 +38,10 @@ class Judgements:
         if desc:
             corpus = tqdm(corpus, desc=desc, total=len(self))
         for reference, translation in corpus:
-            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in stopwords]
-            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in stopwords]
+            reference_words = [w.lower() for w in simple_preprocess(reference[0])
+                               if w.lower() not in stopwords]
+            translation_words = [w.lower() for w in simple_preprocess(translation)
+                                 if w.lower() not in stopwords]
             yield reference_words, translation_words
 
     def __eq__(self, other: Any) -> bool:
@@ -40,6 +53,13 @@ class Judgements:
             self.translations == other.translations,
             self.scores == other.scores,
         ])
+
+    def __getitem__(self, indexes: slice) -> 'Judgements':
+        src_texts = self.src_texts[indexes]
+        references = self.references[indexes] if self.references is not None else None
+        translations = self.translations[indexes]
+        scores = self.scores[indexes]
+        return Judgements(src_texts, references, translations, scores, shuffle=False)
 
     def __len__(self):
         return len(self.src_texts)
@@ -118,7 +138,7 @@ class Evaluator:
             raise ValueError(judgements_type)
 
     def load_judgements(self, split: str = "train", error_type: str = None, first_reference_only: bool = True,
-                        shuffle: bool = True, shuffle_random_state: int = 42, split_ratio: float = 0.8) -> Judgements:
+                        split_ratio: float = 0.8) -> Judgements:
         if self.judgements_type == "DA":
             split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
@@ -207,31 +227,20 @@ class Evaluator:
         if self.reference_free:
             references = None
 
-        if shuffle:
-            src_texts, translations, scores = sklearn.utils.shuffle(
-                src_texts, translations, scores, random_state=shuffle_random_state)
-            if references is not None:
-                references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
+        judgements = Judgements(src_texts, references, translations, scores)
 
-        def slice_data(indexes: slice) -> None:
-            nonlocal src_texts, references, translations, scores
-            src_texts = src_texts[indexes]
-            references = references[indexes] if references is not None else None
-            translations = translations[indexes]
-            scores = scores[indexes]
-
-        pivot = int(round(len(src_texts) * split_ratio))
+        pivot = int(round(len(judgements) * split_ratio))
         if split == "train":
-            slice_data(slice(pivot))
+            judgements = judgements[:pivot]
         elif split == "test":
-            slice_data(slice(pivot, None))
+            judgements = judgements[pivot:]
         else:
             raise ValueError(split)
 
         if self.firstn is not None:
-            slice_data(slice(self.firstn))
+            judgements = judgements[:self.firstn]
 
-        return Judgements(src_texts, references, translations, scores)
+        return judgements
 
     @staticmethod
     def _load_file(fpath: str) -> List[str]:
