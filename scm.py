@@ -28,7 +28,7 @@ class ContextualSCM(ReferenceFreeMetric):
 
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed([t for t in judgements.src_texts])
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(judgements.src_texts)
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
         trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
@@ -81,9 +81,6 @@ class ContextualSCM(ReferenceFreeMetric):
 
         return out_scores
 
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements)
-
 
 class DecontextualizedSCM(ReferenceFreeMetric):
 
@@ -99,7 +96,7 @@ class DecontextualizedSCM(ReferenceFreeMetric):
 
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed([t for t in judgements.src_texts])
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(judgements.src_texts)
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
         trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
@@ -139,9 +136,6 @@ class DecontextualizedSCM(ReferenceFreeMetric):
             out_scores.append(similarity_matrix.inner_product(ref_index, trans_index, normalized=(True, True)))
 
         return out_scores
-
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements)
 
 
 class SCM(Metric):

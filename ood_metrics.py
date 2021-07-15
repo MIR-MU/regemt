@@ -93,12 +93,13 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         Syntactic compositionality is a transition matrix of PoS tags
         """
         self.tgt_lang = tgt_lang
+        self.reference_free = reference_free
 
         if reference_free:
             self.src_lang = src_lang
 
-    def compute(self, judgements: Judgements, ref_free: bool = False) -> List[float]:
-        if ref_free:
+    def compute(self, judgements: Judgements) -> List[float]:
+        if self.reference_free:
             base_transitions = [TransitionModel([src_text], self.src_lang) for src_text in judgements.src_texts]
         else:
             base_transitions = [TransitionModel(ref_texts, self.tgt_lang)
@@ -109,6 +110,3 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         distances = [base_t.distance(translated_t) for base_t, translated_t in zip(base_transitions, translated_model)]
 
         return distances
-
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements, ref_free=True)

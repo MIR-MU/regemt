@@ -86,9 +86,8 @@ class Metric(abc.ABC):
 
 class ReferenceFreeMetric(Metric):
 
-    @abc.abstractmethod
     def compute_ref_free(self, test_judgements: Judgements) -> List[float]:
-        pass
+        return self.compute(test_judgements)
 
 
 class AugmentedCorpus:

@@ -25,7 +25,7 @@ class ContextualWMD(ReferenceFreeMetric):
 
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed([t for t in judgements.src_texts])
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(judgements.src_texts)
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
         trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
@@ -48,9 +48,6 @@ class ContextualWMD(ReferenceFreeMetric):
         out_scores = get_wmds(w2v_model, tqdm(zipped_corpus, desc=self.label))
         return out_scores
 
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements)
-
 
 class DecontextualizedWMD(ReferenceFreeMetric):
 
@@ -66,7 +63,7 @@ class DecontextualizedWMD(ReferenceFreeMetric):
 
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed([t for t in judgements.src_texts])
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(judgements.src_texts)
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
         trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
@@ -97,9 +94,6 @@ class DecontextualizedWMD(ReferenceFreeMetric):
         else:
             out_scores = get_wmds(w2v_model, tokenized_texts)
         return out_scores
-
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements)
 
 
 class WMD(Metric):
