@@ -266,7 +266,7 @@ class Evaluator:
             for metric in self.metrics:
                 report[metric.label] = [float(val) for val in metric.compute(test_judgements)]
         else:
-            for metric in [m for m in self.metrics if issubclass(type(m), ReferenceFreeMetric)]:
+            for metric in [m for m in self.metrics if isinstance(m, ReferenceFreeMetric)]:
                 report[metric.label] = [float(val) for val in metric.compute_ref_free(test_judgements)]
 
         return report

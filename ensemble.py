@@ -27,7 +27,10 @@ class Regression(ReferenceFreeMetric):
     model = None
 
     def __init__(self, metrics: Iterable[ReferenceFreeMetric], reference_free: bool = False):
-        self.metrics = tuple(metrics)
+        if reference_free:
+            metrics = [metric for metric in metrics if isinstance(metric, ReferenceFreeMetric)]
+
+        self.metrics = metrics
         self.reference_free = reference_free
 
     def _get_metric_features(self, judgements: Judgements) -> List[Features]:
