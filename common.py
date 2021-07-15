@@ -48,6 +48,17 @@ class Judgements:
                                  if w.lower() not in stopwords]
             yield reference_words, translation_words
 
+    def __getitem__(self, indexes: slice) -> 'Judgements':
+        src_texts = self.src_texts[indexes]
+        references = self.references[indexes] if self.references is not None else None
+        translations = self.translations[indexes]
+        scores = self.scores[indexes]
+        return Judgements(src_texts, references, translations, scores, shuffle=False)
+
+    def split(self, split_ratio: float = 0.8) -> Tuple['Judgements', 'Judgements']:
+        pivot = int(round(len(self) * split_ratio))
+        return (self[:pivot], self[pivot:])
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Judgements):
             return NotImplemented
@@ -57,13 +68,6 @@ class Judgements:
             self.translations == other.translations,
             self.scores == other.scores,
         ])
-
-    def __getitem__(self, indexes: slice) -> 'Judgements':
-        src_texts = self.src_texts[indexes]
-        references = self.references[indexes] if self.references is not None else None
-        translations = self.translations[indexes]
-        scores = self.scores[indexes]
-        return Judgements(src_texts, references, translations, scores, shuffle=False)
 
     def __len__(self):
         return len(self.src_texts)
@@ -141,8 +145,8 @@ class Evaluator:
         else:
             raise ValueError(judgements_type)
 
-    def load_judgements(self, split: str = "train", error_type: str = None, first_reference_only: bool = True,
-                        split_ratio: float = 0.8) -> Judgements:
+    def load_judgements(self, split: str = "train", error_type: str = None,
+                        first_reference_only: bool = True) -> Judgements:
         if self.judgements_type == "DA":
             split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
@@ -233,11 +237,10 @@ class Evaluator:
 
         judgements = Judgements(src_texts, references, translations, scores)
 
-        pivot = int(round(len(judgements) * split_ratio))
         if split == "train":
-            judgements = judgements[:pivot]
+            judgements, _ = judgements.split()
         elif split == "test":
-            judgements = judgements[pivot:]
+            _, judgements = judgements.split()
         else:
             raise ValueError(split)
 
