@@ -10,6 +10,7 @@ from conventional_metrics import BLEU, METEOR  # noqa: F401
 from ood_metrics import SyntacticCompositionality  # noqa: F401
 from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
 from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
+from ensemble import Regression  # noqa: F401
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,6 +47,8 @@ def main():
                 if src_lang in ["zh", "de"]:
                     metrics.append(SyntacticCompositionality(src_lang=src_lang, tgt_lang=tgt_lang,
                                                              reference_free=reference_free))
+
+                metrics.append(Regression(metrics, reference_free=reference_free))
 
                 LOGGER.info("Evaluating lang pair %s" % lang_pair)
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
