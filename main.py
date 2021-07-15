@@ -12,8 +12,6 @@ from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
 from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 from ensemble import Regression  # noqa: F401
 
-LOGGER = logging.getLogger(__name__)
-
 
 def main():
     firstn = 100
@@ -50,7 +48,7 @@ def main():
 
                 metrics.append(Regression(metrics, reference_free=reference_free))
 
-                LOGGER.info("Evaluating lang pair %s" % lang_pair)
+                print("Evaluating lang pair %s" % lang_pair)
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
                                       judgements_type=judgements_type,
                                       reference_free=reference_free, firstn=firstn)
@@ -73,10 +71,10 @@ def main():
                             (judgements_type, reference_free, lang_pair))
                 plt.clf()
 
-    LOGGER.info("Done")
+    print("Done")
 
 
 if __name__ == '__main__':
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
     main()
