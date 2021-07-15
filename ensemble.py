@@ -1,6 +1,7 @@
 from typing import Iterable, List, Tuple, Optional
 
 from common import ReferenceFreeMetric, Judgements
+import numpy as np
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import RegressorMixin as Model
@@ -11,15 +12,16 @@ from sklearn.linear_model import (
     BayesianRidge,
 )
 from sklearn.svm import SVR
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
-from sklearn.cross_decomposition import PLSRegression
 from sklearn.neural_network import MLPRegressor
-from sklearn.metrics import mean_squared_error
 from tqdm.autonotebook import tqdm
 
 
 Feature = float
 Features = Tuple[Feature, ...]
+
+Scores = List[float]
 
 
 class Regression(ReferenceFreeMetric):
@@ -60,35 +62,115 @@ class Regression(ReferenceFreeMetric):
             features.append((*metric_features, *other_features))
         return features
 
-    def _get_models(self) -> Iterable[Model]:
+    def _get_scores(self, judgements: Judgements) -> Scores:
+        return judgements.scores
+
+    def _get_models(self, random_state: float = 42) -> Model:
+        def linear_regression() -> Model:
+            return make_pipeline(
+                StandardScaler(),
+                GridSearchCV(
+                    LinearRegression(),
+                    {
+                        'normalize': [True, False],
+                        'positive': [True, False],
+                    },
+                )
+            )
+
+        def sgd_regressor() -> Model:
+            return make_pipeline(
+                StandardScaler(),
+                GridSearchCV(
+                    SGDRegressor(random_state=random_state),
+                    {
+                        'loss': ['squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
+                        'penalty': ['l2', 'l1', 'elasticnet'],
+                        'early_stopping': [True, False],
+                    },
+                )
+            )
+
+        def ridge() -> Model:
+            return make_pipeline(
+                StandardScaler(),
+                GridSearchCV(
+                    Ridge(random_state=random_state),
+                    {
+                        'alpha': np.logspace(1, 4, 50),
+                    },
+                )
+            )
+
+        def bayesian_ridge() -> Model:
+            return make_pipeline(
+                StandardScaler(),
+                BayesianRidge(),
+            )
+
+        def svr() -> Model:
+            return make_pipeline(
+                StandardScaler(),
+                GridSearchCV(
+                    SVR(),
+                    {
+                        'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+                        'C': np.logspace(-2, 3, 50),
+                    },
+                )
+            )
+
+        def k_nearest_neighbors_regressor() -> Model:
+            return make_pipeline(
+                StandardScaler(),
+                GridSearchCV(
+                    KNeighborsRegressor(),
+                    {
+                        'n_neighbors': range(1, 20, 2),
+                    },
+                )
+            )
+
+        def mlp_regressor() -> Model:
+            return make_pipeline(
+                StandardScaler(),
+                GridSearchCV(
+                    MLPRegressor(random_state=random_state),
+                    {
+                        'activation': ['identity', 'logistic', 'tanh', 'relu'],
+                        'solver': ['lbfgs', 'sgd', 'adam'],
+                        'alpha': np.logspace(1, 4, 50),
+                    },
+                )
+            )
+
         models = [
-            LinearRegression(),
-            SGDRegressor(),
-            Ridge(),
-            BayesianRidge(),
-            SVR(kernel='rbf'),
-            KNeighborsRegressor(),
-            PLSRegression(),
-            MLPRegressor(),
+            linear_regression(),
+            sgd_regressor(),
+            ridge(),
+            bayesian_ridge(),
+            svr(),
+            k_nearest_neighbors_regressor(),
+            mlp_regressor(),
         ]
+
         for model in tqdm(models, desc=f'{self.label}: model selection'):
-            yield make_pipeline(StandardScaler(), model)
+            yield model
 
     def fit(self, judgements: Judgements):
         train_judgements, test_judgements = judgements.split()
 
-        train_X, train_y = self._get_features(train_judgements), train_judgements.scores
-        test_X, true_test_y = self._get_features(test_judgements), test_judgements.scores
-        models, best_model, best_mse = self._get_models(), None, float('inf')
+        train_X, train_y = self._get_features(train_judgements), self._get_scores(train_judgements)
+        test_X, test_y = self._get_features(test_judgements), self._get_scores(test_judgements)
+        models, best_model, best_r2 = self._get_models(), None, float('-inf')
         for model in models:
             model.fit(train_X, train_y)
-            predicted_test_y = model.predict(test_X)
-            mse = mean_squared_error(true_test_y, predicted_test_y)
-            if mse < best_mse:
-                best_model, best_mse = model, mse
+            r2 = model.score(test_X, test_y)
+            if r2 > best_r2:
+                best_model, best_r2 = model, r2
         assert best_model is not None
 
-        X, y = self._get_features(judgements), judgements.scores
+        X, y = self._get_features(judgements), self._get_scores(judgements)
         best_model.fit(X, y)
 
         self.model = best_model
