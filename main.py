@@ -15,7 +15,7 @@ from ensemble import Regression  # noqa: F401
 
 
 def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('MQM',), tgt_langs: Set[str] = {'en'}):
+         judgements_types: Tuple[str, ...] = ('MQM',), tgt_langs: Optional[Set[str]] = {'en'}):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
@@ -26,7 +26,7 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
 
             for lang_pair in langs:
                 src_lang, tgt_lang = lang_pair.split("-")
-                if tgt_lang not in tgt_langs:
+                if tgt_langs is not None and tgt_lang not in tgt_langs:
                     continue
 
                 metrics = [
