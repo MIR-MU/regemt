@@ -20,7 +20,9 @@ def main(firstn: Optional[float] = 100,
          judgements_types: Tuple[str, ...] = ('MQM',),
          tgt_langs: Optional[Set[str]] = {'en'},
          figsize: Tuple[int, int] = (10, 10),
-         enable_compositionality: bool = False):
+         enable_compositionality: bool = False,
+         enable_fasttext_metrics: bool = False,
+         enable_contextual_scm: bool = False):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
@@ -35,26 +37,38 @@ def main(firstn: Optional[float] = 100,
                     continue
 
                 metrics = [
-                    BLEU(),
-                    METEOR(),
                     BERTScore(tgt_lang="en", reference_free=reference_free),
-                    # ContextualSCM(tgt_lang="en", reference_free=reference_free),
                     ContextualWMD(tgt_lang="en", reference_free=reference_free),
-                    DecontextualizedSCM(tgt_lang="en", use_tfidf=False, reference_free=reference_free),
-                    DecontextualizedSCM(tgt_lang="en", use_tfidf=True, reference_free=reference_free),
+                ]
+
+                if enable_contextual_scm:
+                    metrics += [ContextualSCM(tgt_lang="en", reference_free=reference_free)]
+
+                metrics += [
                     DecontextualizedWMD(tgt_lang="en", use_tfidf=False, reference_free=reference_free),
                     DecontextualizedWMD(tgt_lang="en", use_tfidf=True, reference_free=reference_free),
-                    # SCM(tgt_lang="en", use_tfidf=False),
-                    # SCM(tgt_lang="en", use_tfidf=True),
-                    # WMD(tgt_lang="en", use_tfidf=False),
-                    # WMD(tgt_lang="en", use_tfidf=True),
+                    DecontextualizedSCM(tgt_lang="en", use_tfidf=False, reference_free=reference_free),
+                    DecontextualizedSCM(tgt_lang="en", use_tfidf=True, reference_free=reference_free),
+                ]
+
+                if enable_fasttext_metrics:
+                    metrics += [
+                        SCM(tgt_lang="en", use_tfidf=False),
+                        SCM(tgt_lang="en", use_tfidf=True),
+                        WMD(tgt_lang="en", use_tfidf=False),
+                        WMD(tgt_lang="en", use_tfidf=True),
+                    ]
+
+                metrics += [
+                    BLEU(),
+                    METEOR(),
                 ]
 
                 if src_lang in ["zh", "de"] and enable_compositionality:
-                    metrics.append(SyntacticCompositionality(src_lang=src_lang, tgt_lang=tgt_lang,
-                                                             reference_free=reference_free))
+                    metrics += [SyntacticCompositionality(src_lang=src_lang, tgt_lang=tgt_lang,
+                                                          reference_free=reference_free)]
 
-                metrics.append(Regression(metrics, reference_free=reference_free))
+                metrics = [Regression(metrics, reference_free=reference_free)] + metrics
 
                 print("Evaluating lang pair %s" % lang_pair)
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
