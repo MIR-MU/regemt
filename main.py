@@ -6,13 +6,13 @@ import pandas as pd
 import seaborn as sns
 import transformers
 from matplotlib import pyplot as plt
-from bertscore import BERTScore  # noqa: F401
+from bertscore import BERTScore
 from common import Evaluator, Report
-from conventional_metrics import BLEU, METEOR  # noqa: F401
-from ood_metrics import SyntacticCompositionality  # noqa: F401
-from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
-from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
-from ensemble import Regression  # noqa: F401
+from conventional_metrics import BLEU, METEOR
+from ood_metrics import SyntacticCompositionality
+from scm import SCM, ContextualSCM, DecontextualizedSCM
+from wmd import WMD, ContextualWMD, DecontextualizedWMD
+from ensemble import Regression
 
 
 def main(firstn: Optional[float] = 100,
