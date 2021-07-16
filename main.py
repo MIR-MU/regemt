@@ -59,15 +59,23 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 reports.append(report)
 
                 pearson = pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs)
-                sns.heatmap(pearson, annot=True)
-                plt.tight_layout()
+                ax = plt.axes()
+                sns.heatmap(pearson, annot=True, ax=ax)
+                ax.set_title(r"Pearson's $r$, %s%s, first %d, %s $\rightarrow$ %s" %
+                             (judgements_type, ' (ref-free)' if reference_free else '',
+                              firstn, src_lang, tgt_lang))
                 plt.show()
+                plt.tight_layout()
                 plt.savefig("heatmap-pearson-%s-firstn=%s-reference_free=%s-%s_%s.png" %
                             (judgements_type, firstn, reference_free, src_lang, tgt_lang))
                 plt.clf()
 
                 spearman = pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs)
-                sns.heatmap(spearman, annot=True)
+                ax = plt.axes()
+                sns.heatmap(spearman, annot=True, ax=ax)
+                ax.set_title(r"Spearman's $\rho$, %s%s, first %d, %s $\rightarrow$ %s" %
+                             (judgements_type, ' (ref-free)' if reference_free else '',
+                              firstn, src_lang, tgt_lang))
                 plt.show()
                 plt.tight_layout()
                 plt.savefig("heatmap-spearman-%s-firstn=%s-reference_free=%s-%s_%s.png" %
