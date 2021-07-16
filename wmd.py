@@ -104,7 +104,7 @@ class WMD(Metric):
     def __init__(self, tgt_lang: str, use_tfidf: bool):
         if tgt_lang == "en":
             self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-            nltk.download('stopwords')
+            nltk.download('stopwords', quiet=True)
             self.stopwords = stopwords.words('english')
         else:
             raise ValueError(tgt_lang)

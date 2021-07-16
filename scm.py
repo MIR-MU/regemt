@@ -147,7 +147,7 @@ class SCM(Metric):
         if tgt_lang == "en":
             self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
             self.w2v_model.init_sims(replace=True)
-            nltk.download('stopwords')
+            nltk.download('stopwords', quiet=True)
             self.stopwords = stopwords.words('english')
         else:
             raise ValueError(tgt_lang)

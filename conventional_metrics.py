@@ -24,7 +24,7 @@ class METEOR(Metric):
     label = "METEOR"
 
     def __init__(self):
-        nltk.download('wordnet')
+        nltk.download('wordnet', quiet=True)
 
     def compute(self, judgements: Judgements) -> List[float]:
         return [meteor_score(expected_items, actual_item)
