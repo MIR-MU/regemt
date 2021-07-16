@@ -1,6 +1,8 @@
 import abc
 import os
 from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
+from statistics import mean
+from itertools import repeat
 import logging
 
 import pandas as pd
@@ -20,10 +22,30 @@ class Judgements:
 
     def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
                  translations: List[str], scores: List[float], shuffle: bool = True,
-                 shuffle_random_state: int = 42):
+                 shuffle_random_state: int = 42, make_unique: bool = True):
         assert references is None or len(references) == len(src_texts)
         assert len(translations) == len(src_texts)
         assert len(scores) == len(src_texts)
+
+        if make_unique:
+            new_src_texts, new_references, new_translations, new_scores = [], [] if references else None, [], dict()
+            for row in zip(src_texts, map(tuple, references) if references else repeat(None), translations, scores):
+                src_text, reference, translation, score = row
+                if (src_text, translation) not in new_scores:
+                    new_scores[(src_text, translation)] = []
+                    new_src_texts.append(src_text)
+                    if new_references is not None:
+                        new_references.append(reference)
+                    new_translations.append(translation)
+                new_scores[(src_text, translation)].append(score)
+            if len(new_src_texts) < len(src_texts):
+                num_non_uniques = len(src_texts) - len(new_src_texts)
+                non_unique_percent = num_non_uniques * 100.0 / len(src_texts)
+                msg = f'Removed {num_non_uniques} non-unique judgements ({non_unique_percent:g}% of {len(src_texts)})'
+                LOGGER.warning(msg)
+            src_texts, references, translations = new_src_texts, new_references, new_translations
+            scores = [mean(new_scores[(src_text, translation)])
+                      for src_text, translation in zip(src_texts, translations)]
 
         if shuffle:
             src_texts, translations, scores = sklearn.utils.shuffle(
@@ -51,19 +73,21 @@ class Judgements:
         references = list(self.references[indexes]) if self.references is not None else None
         translations = list(self.translations[indexes])
         scores = list(self.scores[indexes])
-        return Judgements(src_texts, references, translations, scores, shuffle=False)
+        return Judgements(src_texts, references, translations, scores, shuffle=False, make_unique=False)
 
     def split(self, split_ratio: float = 0.8) -> Tuple['Judgements', 'Judgements']:
         pivot = int(round(len(self) * split_ratio))
-        return (self[:pivot], self[pivot:])
+        train_judgements, test_judgements = self[:pivot], self[pivot:]
+        assert len(train_judgements) + len(test_judgements) == len(self)
+        assert not train_judgements.overlaps(test_judgements)
+        return (train_judgements, test_judgements)
 
     def overlaps(self, other: 'Judgements') -> bool:
         if self == other:
             return True
-        self_corpus = set(zip(self.src_texts, self.translations))
-        other_corpus = set(zip(other.src_texts, other.translations))
-        intersection = self_corpus & other_corpus
-        return len(intersection) > 0
+        self_corpus = set(zip(self.src_texts, self.translations, self.scores))
+        other_corpus = set(zip(other.src_texts, other.translations, other.scores))
+        return len(self_corpus & other_corpus) > 0
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Judgements):
