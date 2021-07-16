@@ -1,6 +1,5 @@
 import abc
 import os
-from collections.abc import Sequence
 from typing import List, Tuple, Iterable, Dict, Optional, Set, Any, Union
 import logging
 
@@ -17,8 +16,8 @@ TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
 
 class Judgements:
 
-    def __init__(self, src_texts: Sequence[str], references: Optional[Sequence[Sequence[str]]],
-                 translations: Sequence[str], scores: Sequence[float], shuffle: bool = True,
+    def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
+                 translations: List[str], scores: List[float], shuffle: bool = True,
                  shuffle_random_state: int = 42):
         assert references is None or len(references) == len(src_texts)
         assert len(translations) == len(src_texts)
@@ -50,10 +49,10 @@ class Judgements:
             yield reference_words, translation_words
 
     def __getitem__(self, indexes: slice) -> 'Judgements':
-        src_texts = self.src_texts[indexes]
-        references = self.references[indexes] if self.references is not None else None
-        translations = self.translations[indexes]
-        scores = self.scores[indexes]
+        src_texts = list(self.src_texts[indexes])
+        references = list(self.references[indexes]) if self.references is not None else None
+        translations = list(self.translations[indexes])
+        scores = list(self.scores[indexes])
         return Judgements(src_texts, references, translations, scores, shuffle=False)
 
     def split(self, split_ratio: float = 0.8) -> Tuple['Judgements', 'Judgements']:
