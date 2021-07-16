@@ -3,14 +3,13 @@ from typing import List, Any
 from functools import lru_cache
 
 from gensim.models import TfidfModel
-from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 from gensim.corpora import Dictionary
 import numpy as np
 from tqdm.autonotebook import tqdm
 
 from common import Metric, ReferenceFreeMetric, Judgements, AugmentedCorpus
-from embedder import ContextualEmbedder
+from embedder import ContextualEmbedder, FastTextEmbedder
 from _wmd import get_wmds, get_wmds_tfidf
 
 
@@ -123,14 +122,9 @@ class DecontextualizedWMD(ReferenceFreeMetric):
 class WMD(Metric):
 
     label = "WMD"
-    w2v_model = None
 
     def __init__(self, tgt_lang: str, use_tfidf: bool):
-        if tgt_lang == "en":
-            self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-        else:
-            raise ValueError(tgt_lang)
-
+        self.embedder = FastTextEmbedder(tgt_lang)
         self.use_tfidf = use_tfidf
         if use_tfidf:
             self.label = self.label + "_tfidf"
@@ -148,9 +142,9 @@ class WMD(Metric):
 
         tokenized_texts = judgements.get_tokenized_texts(desc=self.label)
         if self.use_tfidf:
-            out_scores = get_wmds_tfidf(self.w2v_model, dictionary, tfidf, tokenized_texts)
+            out_scores = get_wmds_tfidf(self.embedder.keyedvectors, dictionary, tfidf, tokenized_texts)
         else:
-            out_scores = get_wmds(self.w2v_model, tokenized_texts)
+            out_scores = get_wmds(self.embedder.keyedvectors, tokenized_texts)
         return out_scores
 
     def __eq__(self, other: Any) -> bool:

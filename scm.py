@@ -7,14 +7,13 @@ from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
 from gensim.models import TfidfModel
-from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 import numpy as np
 from tqdm.autonotebook import tqdm
 from scipy.sparse import dok_matrix, csr_matrix
 
 from common import ReferenceFreeMetric, Metric, Judgements, AugmentedCorpus
-from embedder import ContextualEmbedder
+from embedder import ContextualEmbedder, FastTextEmbedder
 
 
 class ContextualSCM(ReferenceFreeMetric):
@@ -164,14 +163,9 @@ class DecontextualizedSCM(ReferenceFreeMetric):
 
 class SCM(Metric):
     label = "SCM"
-    w2v_model = None
 
     def __init__(self, tgt_lang: str, use_tfidf: bool):
-        if tgt_lang == "en":
-            self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-        else:
-            raise ValueError(tgt_lang)
-
+        self.embedder = FastTextEmbedder(tgt_lang)
         self.use_tfidf = use_tfidf
         if use_tfidf:
             self.label = self.label + "_tfidf"
@@ -184,8 +178,8 @@ class SCM(Metric):
         corpus = ref_corpus + trans_corpus
         dictionary = Dictionary(corpus)
 
-        annoy = AnnoyIndexer(self.w2v_model, num_trees=1)
-        similarity_index = WordEmbeddingSimilarityIndex(self.w2v_model, kwargs={'indexer': annoy})
+        annoy = AnnoyIndexer(self.embedder.keyedvectors, num_trees=1)
+        similarity_index = WordEmbeddingSimilarityIndex(self.embedder.keyedvectors, kwargs={'indexer': annoy})
 
         if self.use_tfidf:
             tfidf = TfidfModel(dictionary=dictionary)
