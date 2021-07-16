@@ -165,8 +165,9 @@ class Regression(ReferenceFreeMetric):
 
     def fit(self, judgements: Judgements):
         train_judgements, test_judgements = judgements.split()
-
+        print(f'{self.label}: getting features on train-train judgements')
         train_X, train_y = self._get_features(train_judgements), self._get_scores(train_judgements)
+        print(f'{self.label}: getting features on train-test judgements')
         test_X, test_y = self._get_features(test_judgements), self._get_scores(test_judgements)
         models, best_model, best_r2 = self._get_models(), None, float('-inf')
         for model in models:
@@ -176,6 +177,7 @@ class Regression(ReferenceFreeMetric):
                 best_model, best_r2 = model, r2
         assert best_model is not None
 
+        print(f'{self.label}: getting features on train judgements')
         X, y = self._get_features(judgements), self._get_scores(judgements)
         best_model.fit(X, y)
 
@@ -185,6 +187,7 @@ class Regression(ReferenceFreeMetric):
         if self.model is None:
             raise ValueError('Using compute() before fit()')
 
+        print(f'{self.label}: getting features on test judgements')
         X = self._get_features(judgements)
         y = self.model.predict(X)
         return y
