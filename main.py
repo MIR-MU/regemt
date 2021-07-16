@@ -19,7 +19,7 @@ def main(firstn: Optional[float] = 100,
          reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = ('MQM',),
          tgt_langs: Optional[Set[str]] = {'en'},
-         figsize: Tuple[int, int] = (5, 5),
+         figsize: Tuple[int, int] = (10, 10),
          enable_compositionality: bool = False):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
