@@ -4,6 +4,7 @@ from typing import Tuple, Set, Optional, List
 
 import pandas as pd
 import seaborn as sns
+import transformers
 from matplotlib import pyplot as plt
 from bertscore import BERTScore  # noqa: F401
 from common import Evaluator, Report
@@ -89,5 +90,6 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
 
 if __name__ == '__main__':
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    transformers.logging.set_verbosity_error()
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
     main()
