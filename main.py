@@ -15,9 +15,12 @@ from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 from ensemble import Regression  # noqa: F401
 
 
-def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('MQM',), tgt_langs: Optional[Set[str]] = {'en'},
-         figsize: Tuple[int, int] = (5, 5)):
+def main(firstn: Optional[float] = 100,
+         reference_frees: Tuple[bool, ...] = (True, False),
+         judgements_types: Tuple[str, ...] = ('MQM',),
+         tgt_langs: Optional[Set[str]] = {'en'},
+         figsize: Tuple[int, int] = (5, 5),
+         enable_compositionality: bool = False):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
@@ -47,7 +50,7 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                     # WMD(tgt_lang="en", use_tfidf=True),
                 ]
 
-                if src_lang in ["zh", "de"]:
+                if src_lang in ["zh", "de"] and enable_compositionality:
                     metrics.append(SyntacticCompositionality(src_lang=src_lang, tgt_lang=tgt_lang,
                                                              reference_free=reference_free))
 
