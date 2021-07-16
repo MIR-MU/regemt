@@ -83,7 +83,7 @@ def main(firstn: Optional[float] = 100,
                         'spearman': r"Spearman's $\rho$",
                     }
                     title = r"%s, %s%s%s, %s $\rightarrow$ %s" % \
-                        (method_names[method], judgements_type, ' (ref-free)' if reference_free else '',
+                        (method_names[method], judgements_type, ' (reference-free)' if reference_free else '',
                          f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang)
                     basename = "heatmap-%s-%s-firstn=%s-reference_free=%s-%s_%s" % \
                         (method, judgements_type, firstn, reference_free, src_lang, tgt_lang)
