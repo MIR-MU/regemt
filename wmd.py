@@ -6,8 +6,6 @@ from gensim.models import TfidfModel
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 from gensim.corpora import Dictionary
-import nltk
-from nltk.corpus import stopwords
 import numpy as np
 from tqdm.autonotebook import tqdm
 
@@ -130,8 +128,6 @@ class WMD(Metric):
     def __init__(self, tgt_lang: str, use_tfidf: bool):
         if tgt_lang == "en":
             self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-            nltk.download('stopwords', quiet=True)
-            self.stopwords = stopwords.words('english')
         else:
             raise ValueError(tgt_lang)
 
@@ -142,7 +138,7 @@ class WMD(Metric):
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         ref_corpus, trans_corpus = map(
-            list, zip(*judgements.get_tokenized_texts(self.stopwords, desc=self.label)))
+            list, zip(*judgements.get_tokenized_texts(desc=self.label)))
 
         corpus = ref_corpus + trans_corpus
 
@@ -150,7 +146,7 @@ class WMD(Metric):
             dictionary = Dictionary(corpus)
             tfidf = TfidfModel(dictionary=dictionary, smartirs='nfx')
 
-        tokenized_texts = judgements.get_tokenized_texts(self.stopwords, desc=self.label)
+        tokenized_texts = judgements.get_tokenized_texts(desc=self.label)
         if self.use_tfidf:
             out_scores = get_wmds_tfidf(self.w2v_model, dictionary, tfidf, tokenized_texts)
         else:

@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict, Optional, Set, Any, Union
+from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
 import logging
 
 import pandas as pd
@@ -36,19 +36,15 @@ class Judgements:
         self.translations = tuple(translations)
         self.scores = tuple(scores)
 
-    def get_tokenized_texts(self, stopwords: Optional[Set] = None,
-                            desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
-        if not stopwords:
-            stopwords = set()
-        corpus = zip(self.references, self.translations)
+    def get_tokenized_texts(self, desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
+        sources = [t[0] for t in self.references] if self.references is not None else self.src_texts
+        corpus = zip(sources, self.translations)
         if desc:
             corpus = tqdm(corpus, desc=desc, total=len(self))
-        for reference, translation in corpus:
-            reference_words = [w.lower() for w in simple_preprocess(reference[0])
-                               if w.lower() not in stopwords]
-            translation_words = [w.lower() for w in simple_preprocess(translation)
-                                 if w.lower() not in stopwords]
-            yield reference_words, translation_words
+        for source, translation in corpus:
+            source_words = list(map(str.lower, simple_preprocess(source)))
+            translation_words = list(map(str.lower, simple_preprocess(translation)))
+            yield source_words, translation_words
 
     def __getitem__(self, indexes: slice) -> 'Judgements':
         src_texts = list(self.src_texts[indexes])

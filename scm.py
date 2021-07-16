@@ -6,11 +6,9 @@ from functools import lru_cache
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
-from nltk.corpus import stopwords
 from gensim.models import TfidfModel
 from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
-import nltk
 import numpy as np
 from tqdm.autonotebook import tqdm
 from scipy.sparse import dok_matrix, csr_matrix
@@ -167,13 +165,10 @@ class DecontextualizedSCM(ReferenceFreeMetric):
 class SCM(Metric):
     label = "SCM"
     w2v_model = None
-    stopwords = None
 
     def __init__(self, tgt_lang: str, use_tfidf: bool):
         if tgt_lang == "en":
             self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-            nltk.download('stopwords', quiet=True)
-            self.stopwords = stopwords.words('english')
         else:
             raise ValueError(tgt_lang)
 
@@ -184,7 +179,7 @@ class SCM(Metric):
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         ref_corpus, trans_corpus = map(
-            list, zip(*judgements.get_tokenized_texts(self.stopwords, desc=self.label)))
+            list, zip(*judgements.get_tokenized_texts(desc=self.label)))
 
         corpus = ref_corpus + trans_corpus
         dictionary = Dictionary(corpus)
@@ -199,7 +194,7 @@ class SCM(Metric):
             similarity_matrix = SparseTermSimilarityMatrix(similarity_index, dictionary)
 
         out_scores = []
-        for reference_words, translation_words in judgements.get_tokenized_texts(self.stopwords, desc=self.label):
+        for reference_words, translation_words in judgements.get_tokenized_texts(desc=self.label):
             ref_index = dictionary.doc2bow(reference_words)
             trans_index = dictionary.doc2bow(translation_words)
             if self.use_tfidf:
