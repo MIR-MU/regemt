@@ -89,7 +89,6 @@ class Regression(ReferenceFreeMetric):
                 GridSearchCV(
                     SGDRegressor(random_state=random_state),
                     {
-                        'loss': ['squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
                         'penalty': ['l2', 'l1', 'elasticnet'],
                         'early_stopping': [True, False],
                     },
@@ -142,7 +141,6 @@ class Regression(ReferenceFreeMetric):
                 GridSearchCV(
                     MLPRegressor(random_state=random_state),
                     {
-                        'activation': ['identity', 'logistic', 'tanh', 'relu'],
                         'solver': ['lbfgs', 'sgd', 'adam'],
                         'alpha': np.logspace(1, 4, 50),
                     },
