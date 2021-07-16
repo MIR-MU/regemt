@@ -1,4 +1,5 @@
-from typing import Dict, Tuple, List, Callable, Iterable
+from typing import Dict, Tuple, List, Callable, Iterable, Any, Optional
+from functools import lru_cache
 
 import numpy as np
 import spacy
@@ -84,7 +85,7 @@ class TransitionModel:
 class SyntacticCompositionality(ReferenceFreeMetric):
 
     pos_tagger: Callable[[str], Tuple[str, str]]
-    src_lang = None
+    src_lang: Optional[str] = None
     label = "Compositionality"
 
     def __init__(self, tgt_lang: str, src_lang: str = None, reference_free: bool = False):
@@ -98,6 +99,7 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         if reference_free:
             self.src_lang = src_lang
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
             base_transitions = [TransitionModel([src_text], self.src_lang) for src_text in judgements.src_texts]
@@ -110,3 +112,15 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         distances = [base_t.distance(translated_t) for base_t, translated_t in zip(base_transitions, translated_model)]
 
         return distances
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, SyntacticCompositionality):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.src_lang == other.src_lang,
+            self.tgt_lang == other.tgt_lang,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.src_lang, self.tgt_lang))

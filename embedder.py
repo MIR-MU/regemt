@@ -1,5 +1,5 @@
 import shelve
-from typing import List, Tuple, Iterable, Dict
+from typing import List, Tuple, Iterable, Dict, Any
 
 import torch
 from tqdm.autonotebook import tqdm
@@ -136,3 +136,14 @@ class ContextualEmbedder:
         assert len(texts_tokens) == len(texts)
 
         return texts_tokens, texts_embeddings
+
+    def __hash__(self) -> int:
+        return hash((self.lang, self.vector_size))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ContextualEmbedder):
+            return NotImplemented
+        return all([
+            self.lang == other.lang,
+            self.vector_size == other.vector_size,
+        ])

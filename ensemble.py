@@ -1,4 +1,5 @@
-from typing import Iterable, List, Tuple, Optional
+from typing import Iterable, List, Tuple, Optional, Any
+from functools import lru_cache
 import warnings
 
 from common import ReferenceFreeMetric, Judgements
@@ -31,12 +32,13 @@ class Regression(ReferenceFreeMetric):
 
     label = "Regression"
     model: Optional[Model] = None
+    judgements: Optional[Judgements] = None
 
     def __init__(self, metrics: Iterable[ReferenceFreeMetric], reference_free: bool = False):
         if reference_free:
             metrics = [metric for metric in metrics if isinstance(metric, ReferenceFreeMetric)]
 
-        self.metrics = list(metrics)
+        self.metrics = tuple(metrics)
         self.reference_free = reference_free
 
     def _get_metric_features(self, judgements: Judgements) -> List[Features]:
@@ -66,9 +68,9 @@ class Regression(ReferenceFreeMetric):
         return features
 
     def _get_scores(self, judgements: Judgements) -> Scores:
-        return judgements.scores
+        return list(judgements.scores)
 
-    def _get_models(self, optimize_hyperparameters: bool = True, random_state: float = 42) -> Model:
+    def _get_models(self, optimize_hyperparameters: bool = False, random_state: float = 42) -> Model:
         def linear_regression() -> Model:
             return make_pipeline(
                 StandardScaler(),
@@ -77,8 +79,8 @@ class Regression(ReferenceFreeMetric):
                     {
                         'normalize': [True, False],
                         'positive': [True, False],
-                    } if optimize_hyperparameters else dict(),
-                )
+                    },
+                ) if optimize_hyperparameters else LinearRegression()
             )
 
         def sgd_regressor() -> Model:
@@ -90,8 +92,8 @@ class Regression(ReferenceFreeMetric):
                         'loss': ['squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
                         'penalty': ['l2', 'l1', 'elasticnet'],
                         'early_stopping': [True, False],
-                    } if optimize_hyperparameters else dict(),
-                )
+                    },
+                ) if optimize_hyperparameters else SGDRegressor(random_state=random_state)
             )
 
         def ridge() -> Model:
@@ -101,8 +103,8 @@ class Regression(ReferenceFreeMetric):
                     Ridge(random_state=random_state),
                     {
                         'alpha': np.logspace(1, 4, 50),
-                    } if optimize_hyperparameters else dict(),
-                )
+                    },
+                ) if optimize_hyperparameters else Ridge(random_state=random_state)
             )
 
         def bayesian_ridge() -> Model:
@@ -119,8 +121,8 @@ class Regression(ReferenceFreeMetric):
                     {
                         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
                         'C': np.logspace(-2, 3, 50),
-                    } if optimize_hyperparameters else dict(),
-                )
+                    },
+                ) if optimize_hyperparameters else SVR(kernel='rbf')
             )
 
         def k_nearest_neighbors_regressor() -> Model:
@@ -130,8 +132,8 @@ class Regression(ReferenceFreeMetric):
                     KNeighborsRegressor(),
                     {
                         'n_neighbors': range(1, 20, 2),
-                    } if optimize_hyperparameters else dict(),
-                )
+                    },
+                ) if optimize_hyperparameters else KNeighborsRegressor()
             )
 
         def mlp_regressor() -> Model:
@@ -143,8 +145,8 @@ class Regression(ReferenceFreeMetric):
                         'activation': ['identity', 'logistic', 'tanh', 'relu'],
                         'solver': ['lbfgs', 'sgd', 'adam'],
                         'alpha': np.logspace(1, 4, 50),
-                    } if optimize_hyperparameters else dict(),
-                )
+                    },
+                ) if optimize_hyperparameters else MLPRegressor(random_state=random_state)
             )
 
         models = [
@@ -161,11 +163,15 @@ class Regression(ReferenceFreeMetric):
             yield model
 
     def fit(self, judgements: Judgements):
+        print(f'{self.label}: getting features on train judgements')
+        X, y = self._get_features(judgements), self._get_scores(judgements)
+
         train_judgements, test_judgements = judgements.split()
-        print(f'{self.label}: getting features on train-train judgements')
-        train_X, train_y = self._get_features(train_judgements), self._get_scores(train_judgements)
-        print(f'{self.label}: getting features on train-test judgements')
-        test_X, test_y = self._get_features(test_judgements), self._get_scores(test_judgements)
+        train_X, train_y = X[:len(train_judgements)], y[:len(train_judgements)]
+        test_X, test_y = X[len(train_judgements):], y[len(train_judgements):]
+        assert (len(train_X), len(train_y)) == (len(train_judgements), len(train_judgements))
+        assert (len(test_X), len(test_y)) == (len(test_judgements), len(test_judgements))
+
         models, best_model, best_r2 = self._get_models(), None, float('-inf')
         with parallel_backend('multiprocessing', n_jobs=-1), warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=ConvergenceWarning)
@@ -176,17 +182,32 @@ class Regression(ReferenceFreeMetric):
                     best_model, best_r2 = model, r2
         assert best_model is not None
 
-        print(f'{self.label}: getting features on train judgements')
-        X, y = self._get_features(judgements), self._get_scores(judgements)
+        print(f'{self.label}: fitting the selected model')
         best_model.fit(X, y)
 
+        self.judgements = judgements
         self.model = best_model
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.model is None:
             raise ValueError('Using compute() before fit()')
 
         print(f'{self.label}: getting features on test judgements')
         X = self._get_features(judgements)
+
+        print(f'{self.label}: making predictions with the selected model')
         y = self.model.predict(X)
         return y
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Regression):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.metrics == other.metrics,
+            self.judgements == other.judgements,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.metrics, self.judgements))

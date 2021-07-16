@@ -1,5 +1,6 @@
 import abc
 import os
+from collections.abc import Sequence
 from typing import List, Tuple, Iterable, Dict, Optional, Set, Any, Union
 import logging
 
@@ -16,8 +17,8 @@ TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
 
 class Judgements:
 
-    def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
-                 translations: List[str], scores: List[float], shuffle: bool = True,
+    def __init__(self, src_texts: Sequence[str], references: Optional[Sequence[Sequence[str]]],
+                 translations: Sequence[str], scores: Sequence[float], shuffle: bool = True,
                  shuffle_random_state: int = 42):
         assert references is None or len(references) == len(src_texts)
         assert len(translations) == len(src_texts)
@@ -29,10 +30,10 @@ class Judgements:
             if references is not None:
                 references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
 
-        self.src_texts = src_texts
-        self.references = references
-        self.translations = translations
-        self.scores = scores
+        self.src_texts = tuple(src_texts)
+        self.references = tuple(map(tuple, references)) if references is not None else None
+        self.translations = tuple(translations)
+        self.scores = tuple(scores)
 
     def get_tokenized_texts(self, stopwords: Optional[Set] = None,
                             desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
@@ -68,6 +69,9 @@ class Judgements:
             self.translations == other.translations,
             self.scores == other.scores,
         ])
+
+    def __hash__(self) -> int:
+        return hash((self.src_texts, self.references, self.translations, self.scores))
 
     def __len__(self):
         return len(self.src_texts)
@@ -261,7 +265,7 @@ class Evaluator:
     def evaluate(self) -> Dict[str, List[float]]:
         report = {}
         test_judgements = self.load_judgements("test")
-        report["human"] = test_judgements.scores
+        report["human"] = list(test_judgements.scores)
         if not self.reference_free:
             for metric in self.metrics:
                 report[metric.label] = [float(val) for val in metric.compute(test_judgements)]

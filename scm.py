@@ -1,6 +1,7 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Any
 from itertools import product, chain
+from functools import lru_cache
 
 from gensim.corpora import Dictionary
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
@@ -26,12 +27,13 @@ class ContextualSCM(ReferenceFreeMetric):
         self.embedder = ContextualEmbedder(lang=tgt_lang, reference_free=reference_free)
         self.reference_free = reference_free
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed(judgements.src_texts)
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(list(judgements.src_texts))
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
-        trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
+        trans_corpus, trans_embs = self.embedder.tokenize_embed(list(judgements.translations))
 
         augmented_reference_corpus = AugmentedCorpus('test-reference', ref_corpus)
         augmented_translation_corpus = AugmentedCorpus('test-translation', trans_corpus)
@@ -81,6 +83,17 @@ class ContextualSCM(ReferenceFreeMetric):
 
         return out_scores
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ContextualSCM):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.embedder == other.embedder,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.embedder))
+
 
 class DecontextualizedSCM(ReferenceFreeMetric):
 
@@ -94,12 +107,13 @@ class DecontextualizedSCM(ReferenceFreeMetric):
         if use_tfidf:
             self.label = self.label + "_tfidf"
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed(judgements.src_texts)
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(list(judgements.src_texts))
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
-        trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
+        trans_corpus, trans_embs = self.embedder.tokenize_embed(list(judgements.translations))
 
         corpus = ref_corpus + trans_corpus
         embeddings = ref_embs + trans_embs
@@ -137,6 +151,18 @@ class DecontextualizedSCM(ReferenceFreeMetric):
 
         return out_scores
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, DecontextualizedSCM):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.embedder == other.embedder,
+            self.use_tfidf == other.use_tfidf,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.embedder, self.use_tfidf))
+
 
 class SCM(Metric):
     label = "SCM"
@@ -156,6 +182,7 @@ class SCM(Metric):
         if use_tfidf:
             self.label = self.label + "_tfidf"
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         ref_corpus, trans_corpus = map(
             list, zip(*judgements.get_tokenized_texts(self.stopwords, desc=self.label)))
@@ -181,3 +208,13 @@ class SCM(Metric):
                 trans_index = tfidf[trans_index]
             out_scores.append(similarity_matrix.inner_product(ref_index, trans_index, normalized=(True, True)))
         return out_scores
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, SCM):
+            return NotImplemented
+        return all([
+            self.use_tfidf == other.use_tfidf,
+        ])
+
+    def __hash__(self) -> int:
+        return hash(self.use_tfidf)
