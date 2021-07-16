@@ -29,7 +29,7 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 metrics = [
                     BLEU(),
                     METEOR(),
-                    BERTScore(tgt_lang="en"),
+                    BERTScore(tgt_lang="en", reference_free=reference_free),
                     # ContextualSCM(tgt_lang="en", reference_free=reference_free),
                     ContextualWMD(tgt_lang="en", reference_free=reference_free),
                     DecontextualizedSCM(tgt_lang="en", use_tfidf=False, reference_free=reference_free),
