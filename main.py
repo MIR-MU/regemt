@@ -61,9 +61,9 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 pearson = pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs)
                 ax = plt.axes()
                 sns.heatmap(pearson, annot=True, ax=ax)
-                ax.set_title(r"Pearson's $r$, %s%s, first %d, %s $\rightarrow$ %s" %
+                ax.set_title(r"Pearson's $r$, %s%s%s, %s $\rightarrow$ %s" %
                              (judgements_type, ' (ref-free)' if reference_free else '',
-                              firstn, src_lang, tgt_lang))
+                              ', first %d' if firstn is not None else '', src_lang, tgt_lang))
                 plt.show()
                 plt.tight_layout()
                 plt.savefig("heatmap-pearson-%s-firstn=%s-reference_free=%s-%s_%s.png" %
@@ -73,9 +73,9 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 spearman = pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs)
                 ax = plt.axes()
                 sns.heatmap(spearman, annot=True, ax=ax)
-                ax.set_title(r"Spearman's $\rho$, %s%s, first %d, %s $\rightarrow$ %s" %
+                ax.set_title(r"Spearman's $\rho$, %s%s%s, %s $\rightarrow$ %s" %
                              (judgements_type, ' (ref-free)' if reference_free else '',
-                              firstn, src_lang, tgt_lang))
+                              ', first %d' if firstn is not None else '', src_lang, tgt_lang))
                 plt.show()
                 plt.tight_layout()
                 plt.savefig("heatmap-spearman-%s-firstn=%s-reference_free=%s-%s_%s.png" %
