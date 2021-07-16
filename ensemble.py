@@ -75,6 +75,7 @@ class Regression(ReferenceFreeMetric):
                         'normalize': [True, False],
                         'positive': [True, False],
                     },
+                    n_jobs=-1,
                 )
             )
 
@@ -88,6 +89,7 @@ class Regression(ReferenceFreeMetric):
                         'penalty': ['l2', 'l1', 'elasticnet'],
                         'early_stopping': [True, False],
                     },
+                    n_jobs=-1,
                 )
             )
 
@@ -99,6 +101,7 @@ class Regression(ReferenceFreeMetric):
                     {
                         'alpha': np.logspace(1, 4, 50),
                     },
+                    n_jobs=-1,
                 )
             )
 
@@ -117,6 +120,7 @@ class Regression(ReferenceFreeMetric):
                         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
                         'C': np.logspace(-2, 3, 50),
                     },
+                    n_jobs=-1,
                 )
             )
 
@@ -128,6 +132,7 @@ class Regression(ReferenceFreeMetric):
                     {
                         'n_neighbors': range(1, 20, 2),
                     },
+                    n_jobs=-1,
                 )
             )
 
@@ -141,6 +146,7 @@ class Regression(ReferenceFreeMetric):
                         'solver': ['lbfgs', 'sgd', 'adam'],
                         'alpha': np.logspace(1, 4, 50),
                     },
+                    n_jobs=-1,
                 )
             )
 
