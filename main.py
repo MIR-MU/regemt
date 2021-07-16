@@ -17,7 +17,10 @@ from ensemble import Regression  # noqa: F401
 def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = ('MQM',), tgt_langs: Set[str] = {'en'}):
     for reference_free in reference_frees:
+        print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
+            print("Evaluating %s judgements" % judgements_type)
+
             reports = []
             langs = Evaluator.langs_for_judgements(judgements_type)
 
