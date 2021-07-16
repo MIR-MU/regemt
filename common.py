@@ -13,6 +13,8 @@ LOGGER = logging.getLogger(__name__)
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
 TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
 
+Report = Dict[str, List[float]]
+
 
 class Judgements:
 
@@ -261,7 +263,7 @@ class Evaluator:
         with open(fpath) as f:
             return [line.strip() for line in f.readlines()]
 
-    def evaluate(self) -> Dict[str, List[float]]:
+    def evaluate(self) -> Report:
         report = {}
         test_judgements = self.load_judgements("test")
         report["human"] = list(test_judgements.scores)

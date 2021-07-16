@@ -1,12 +1,12 @@
 import os
 import logging
-from typing import Tuple, Set, Optional
+from typing import Tuple, Set, Optional, List
 
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
 from bertscore import BERTScore  # noqa: F401
-from common import Evaluator
+from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR  # noqa: F401
 from ood_metrics import SyntacticCompositionality  # noqa: F401
 from scm import SCM, ContextualSCM, DecontextualizedSCM  # noqa: F401
@@ -15,13 +15,14 @@ from ensemble import Regression  # noqa: F401
 
 
 def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('MQM',), tgt_langs: Optional[Set[str]] = {'en'}):
+         judgements_types: Tuple[str, ...] = ('MQM',), tgt_langs: Optional[Set[str]] = {'en'},
+         figsize: Tuple[int, int] = (5, 5)):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
             print("Evaluating %s judgements" % judgements_type)
 
-            reports = []
+            reports: List[Report] = []
             langs = Evaluator.langs_for_judgements(judgements_type)
 
             for lang_pair in langs:
@@ -58,29 +59,30 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 report = evaluator.evaluate()
                 reports.append(report)
 
-                pearson = pd.DataFrame(report).applymap(float).corr(method="pearson").applymap(abs)
-                ax = plt.axes()
-                sns.heatmap(pearson, annot=True, ax=ax)
-                ax.set_title(r"Pearson's $r$, %s%s%s, %s $\rightarrow$ %s" %
-                             (judgements_type, ' (ref-free)' if reference_free else '',
-                              f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang))
-                plt.show()
-                plt.tight_layout()
-                plt.savefig("heatmap-pearson-%s-firstn=%s-reference_free=%s-%s_%s.png" %
-                            (judgements_type, firstn, reference_free, src_lang, tgt_lang))
-                plt.clf()
+                def plot_correlations(report: Report, method: str) -> None:
+                    method_names = {
+                        'pearson': "Pearson's $r$",
+                        'spearman': r"Spearman's $\rho$",
+                    }
+                    title = r"%s, %s%s%s, %s $\rightarrow$ %s" % \
+                        (method_names[method], judgements_type, ' (ref-free)' if reference_free else '',
+                         f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang)
+                    basename = "heatmap-%s-%s-firstn=%s-reference_free=%s-%s_%s" % \
+                        (method, judgements_type, firstn, reference_free, src_lang, tgt_lang)
 
-                spearman = pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs)
-                ax = plt.axes()
-                sns.heatmap(spearman, annot=True, ax=ax)
-                ax.set_title(r"Spearman's $\rho$, %s%s%s, %s $\rightarrow$ %s" %
-                             (judgements_type, ' (ref-free)' if reference_free else '',
-                              f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang))
-                plt.show()
-                plt.tight_layout()
-                plt.savefig("heatmap-spearman-%s-firstn=%s-reference_free=%s-%s_%s.png" %
-                            (judgements_type, firstn, reference_free, src_lang, tgt_lang))
-                plt.clf()
+                    correlations = pd.DataFrame(report).applymap(float).corr(method=method).applymap(abs)
+
+                    plt.clf()
+                    fig, ax = plt.subplots(figsize=figsize)
+                    sns.heatmap(correlations, annot=True, ax=ax)
+                    ax.set_title(title)
+                    plt.show()
+                    plt.tight_layout()
+                    plt.savefig(f'{basename}.png', dpi=600)
+                    plt.savefig(f'{basename}.pdf', dpi=600)
+
+                plot_correlations(report, 'pearson')
+                plot_correlations(report, 'spearman')
 
     print("Done")
 

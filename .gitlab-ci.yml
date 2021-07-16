@@ -43,5 +43,6 @@ Unit tests:
     - python -m main
   artifacts:
     paths:
-      - heatmap*.png
+      - heatmap-*.png
+      - heatmap-*.pdf
     expire_in: 1 week
