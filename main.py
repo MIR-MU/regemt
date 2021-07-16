@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Tuple, Set, Optional
 
 import pandas as pd
 import seaborn as sns
@@ -13,17 +14,16 @@ from wmd import WMD, ContextualWMD, DecontextualizedWMD  # noqa: F401
 from ensemble import Regression  # noqa: F401
 
 
-def main():
-    firstn = 100
-
-    for reference_free in [True, False]:
-        for judgements_type in ["MQM"]:
+def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (True, False),
+         judgements_types: Tuple[str, ...] = ('MQM',), tgt_langs: Set[str] = {'en'}):
+    for reference_free in reference_frees:
+        for judgements_type in judgements_types:
             reports = []
             langs = Evaluator.langs_for_judgements(judgements_type)
 
             for lang_pair in langs:
                 src_lang, tgt_lang = lang_pair.split("-")
-                if tgt_lang != "en":
+                if tgt_lang not in tgt_langs:
                     continue
 
                 metrics = [
