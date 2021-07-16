@@ -57,6 +57,14 @@ class Judgements:
         pivot = int(round(len(self) * split_ratio))
         return (self[:pivot], self[pivot:])
 
+    def overlaps(self, other: 'Judgements') -> bool:
+        if self == other:
+            return True
+        self_corpus = set(zip(self.src_texts, self.translations))
+        other_corpus = set(zip(other.src_texts, other.translations))
+        intersection = self_corpus & other_corpus
+        return len(intersection) > 0
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Judgements):
             return NotImplemented

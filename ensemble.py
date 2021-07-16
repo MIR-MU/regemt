@@ -191,6 +191,8 @@ class Regression(ReferenceFreeMetric):
     def compute(self, judgements: Judgements) -> List[float]:
         if self.model is None:
             raise ValueError('Using compute() before fit()')
+        if self.judgements.overlaps(judgements):
+            raise ValueError('Train and test judgements overlap')
 
         print(f'{self.label}: getting features on test judgements')
         X = self._get_features(judgements)
