@@ -1,4 +1,5 @@
 from typing import Iterable, List, Tuple, Optional
+import warnings
 
 from common import ReferenceFreeMetric, Judgements
 import numpy as np
@@ -11,10 +12,12 @@ from sklearn.linear_model import (
     Ridge,
     BayesianRidge,
 )
+from sklearn.utils import parallel_backend
 from sklearn.svm import SVR
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
+from sklearn.exceptions import ConvergenceWarning
 from tqdm.autonotebook import tqdm
 
 
@@ -75,7 +78,6 @@ class Regression(ReferenceFreeMetric):
                         'normalize': [True, False],
                         'positive': [True, False],
                     } if optimize_hyperparameters else dict(),
-                    n_jobs=-1,
                 )
             )
 
@@ -89,7 +91,6 @@ class Regression(ReferenceFreeMetric):
                         'penalty': ['l2', 'l1', 'elasticnet'],
                         'early_stopping': [True, False],
                     } if optimize_hyperparameters else dict(),
-                    n_jobs=-1,
                 )
             )
 
@@ -101,7 +102,6 @@ class Regression(ReferenceFreeMetric):
                     {
                         'alpha': np.logspace(1, 4, 50),
                     } if optimize_hyperparameters else dict(),
-                    n_jobs=-1,
                 )
             )
 
@@ -120,7 +120,6 @@ class Regression(ReferenceFreeMetric):
                         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
                         'C': np.logspace(-2, 3, 50),
                     } if optimize_hyperparameters else dict(),
-                    n_jobs=-1,
                 )
             )
 
@@ -132,7 +131,6 @@ class Regression(ReferenceFreeMetric):
                     {
                         'n_neighbors': range(1, 20, 2),
                     } if optimize_hyperparameters else dict(),
-                    n_jobs=-1,
                 )
             )
 
@@ -146,7 +144,6 @@ class Regression(ReferenceFreeMetric):
                         'solver': ['lbfgs', 'sgd', 'adam'],
                         'alpha': np.logspace(1, 4, 50),
                     } if optimize_hyperparameters else dict(),
-                    n_jobs=-1,
                 )
             )
 
@@ -170,11 +167,13 @@ class Regression(ReferenceFreeMetric):
         print(f'{self.label}: getting features on train-test judgements')
         test_X, test_y = self._get_features(test_judgements), self._get_scores(test_judgements)
         models, best_model, best_r2 = self._get_models(), None, float('-inf')
-        for model in models:
-            model.fit(train_X, train_y)
-            r2 = model.score(test_X, test_y)
-            if r2 > best_r2:
-                best_model, best_r2 = model, r2
+        with parallel_backend('multiprocessing', n_jobs=-1), warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=ConvergenceWarning)
+            for model in models:
+                model.fit(train_X, train_y)
+                r2 = model.score(test_X, test_y)
+                if r2 > best_r2:
+                    best_model, best_r2 = model, r2
         assert best_model is not None
 
         print(f'{self.label}: getting features on train judgements')
