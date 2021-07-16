@@ -63,7 +63,7 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 sns.heatmap(pearson, annot=True, ax=ax)
                 ax.set_title(r"Pearson's $r$, %s%s%s, %s $\rightarrow$ %s" %
                              (judgements_type, ' (ref-free)' if reference_free else '',
-                              ', first %d' if firstn is not None else '', src_lang, tgt_lang))
+                              f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang))
                 plt.show()
                 plt.tight_layout()
                 plt.savefig("heatmap-pearson-%s-firstn=%s-reference_free=%s-%s_%s.png" %
@@ -75,7 +75,7 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 sns.heatmap(spearman, annot=True, ax=ax)
                 ax.set_title(r"Spearman's $\rho$, %s%s%s, %s $\rightarrow$ %s" %
                              (judgements_type, ' (ref-free)' if reference_free else '',
-                              ', first %d' if firstn is not None else '', src_lang, tgt_lang))
+                              f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang))
                 plt.show()
                 plt.tight_layout()
                 plt.savefig("heatmap-spearman-%s-firstn=%s-reference_free=%s-%s_%s.png" %
