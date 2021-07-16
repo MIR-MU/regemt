@@ -62,16 +62,16 @@ def main(firstn: Optional[float] = 100, reference_frees: Tuple[bool, ...] = (Tru
                 sns.heatmap(pearson, annot=True)
                 plt.tight_layout()
                 plt.show()
-                plt.savefig("heatmap-pearson-%s-reference_free=%s-%s.png" %
-                            (judgements_type, reference_free, lang_pair))
+                plt.savefig("heatmap-pearson-%s-firstn=%s-reference_free=%s-%s_%s.png" %
+                            (judgements_type, firstn, reference_free, src_lang, tgt_lang))
                 plt.clf()
 
                 spearman = pd.DataFrame(report).applymap(float).corr(method="spearman").applymap(abs)
                 sns.heatmap(spearman, annot=True)
                 plt.show()
                 plt.tight_layout()
-                plt.savefig("heatmap-spearman-%s-reference_free=%s-%s.png" %
-                            (judgements_type, reference_free, lang_pair))
+                plt.savefig("heatmap-spearman-%s-firstn=%s-reference_free=%s-%s_%s.png" %
+                            (judgements_type, firstn, reference_free, src_lang, tgt_lang))
                 plt.clf()
 
     print("Done")
