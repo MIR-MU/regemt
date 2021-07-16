@@ -65,7 +65,7 @@ class Regression(ReferenceFreeMetric):
     def _get_scores(self, judgements: Judgements) -> Scores:
         return judgements.scores
 
-    def _get_models(self, random_state: float = 42) -> Model:
+    def _get_models(self, optimize_hyperparameters: bool = True, random_state: float = 42) -> Model:
         def linear_regression() -> Model:
             return make_pipeline(
                 StandardScaler(),
@@ -74,7 +74,7 @@ class Regression(ReferenceFreeMetric):
                     {
                         'normalize': [True, False],
                         'positive': [True, False],
-                    },
+                    } if optimize_hyperparameters else dict(),
                     n_jobs=-1,
                 )
             )
@@ -88,7 +88,7 @@ class Regression(ReferenceFreeMetric):
                         'loss': ['squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
                         'penalty': ['l2', 'l1', 'elasticnet'],
                         'early_stopping': [True, False],
-                    },
+                    } if optimize_hyperparameters else dict(),
                     n_jobs=-1,
                 )
             )
@@ -100,7 +100,7 @@ class Regression(ReferenceFreeMetric):
                     Ridge(random_state=random_state),
                     {
                         'alpha': np.logspace(1, 4, 50),
-                    },
+                    } if optimize_hyperparameters else dict(),
                     n_jobs=-1,
                 )
             )
@@ -119,7 +119,7 @@ class Regression(ReferenceFreeMetric):
                     {
                         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
                         'C': np.logspace(-2, 3, 50),
-                    },
+                    } if optimize_hyperparameters else dict(),
                     n_jobs=-1,
                 )
             )
@@ -131,7 +131,7 @@ class Regression(ReferenceFreeMetric):
                     KNeighborsRegressor(),
                     {
                         'n_neighbors': range(1, 20, 2),
-                    },
+                    } if optimize_hyperparameters else dict(),
                     n_jobs=-1,
                 )
             )
@@ -145,7 +145,7 @@ class Regression(ReferenceFreeMetric):
                         'activation': ['identity', 'logistic', 'tanh', 'relu'],
                         'solver': ['lbfgs', 'sgd', 'adam'],
                         'alpha': np.logspace(1, 4, 50),
-                    },
+                    } if optimize_hyperparameters else dict(),
                     n_jobs=-1,
                 )
             )
