@@ -1,6 +1,7 @@
 import os
 import logging
 from typing import Tuple, Set, Optional, List
+import sys
 
 import pandas as pd
 import seaborn as sns
@@ -15,14 +16,14 @@ from wmd import WMD, ContextualWMD, DecontextualizedWMD
 from ensemble import Regression
 
 
-def main(firstn: Optional[float] = 100,
-         reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('MQM',),
+def main(firstn: Optional[float] = None,
+         reference_frees: Tuple[bool, ...] = (False, True),
+         judgements_types: Tuple[str, ...] = ('DA', 'MQM', 'catastrophic'),
          src_langs: Optional[Set[str]] = None,
-         tgt_langs: Optional[Set[str]] = {'en'},
+         tgt_langs: Optional[Set[str]] = None,
          figsize: Tuple[int, int] = (10, 10),
          enable_compositionality: bool = False,
-         enable_fasttext_metrics: bool = False,
+         enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
@@ -112,4 +113,20 @@ if __name__ == '__main__':
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     transformers.logging.set_verbosity_error()
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
-    main()
+
+    parameters = dict()
+    for arg in sys.argv[1:]:
+        if arg == '--fast':
+            parameters = {
+                **parameters,
+                **{
+                    'firstn': 100,
+                    'judgements_types': ('MQM',),
+                    'src_langs': {'en'},
+                    'enable_fasttext_metrics': False,
+                }
+            }
+        else:
+            raise ValueError(f'Unrecognized command-line argument: {arg}')
+
+    main(**parameters)
