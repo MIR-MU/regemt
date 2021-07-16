@@ -77,7 +77,7 @@ def main(firstn: Optional[float] = 100,
                 report = evaluator.evaluate()
                 reports.append(report)
 
-                def plot_correlations(report: Report, method: str) -> None:
+                def plot_correlations(report: Report, method: str, dpi: int = 300) -> None:
                     method_names = {
                         'pearson': "Pearson's $r$",
                         'spearman': r"Spearman's $\rho$",
@@ -96,8 +96,8 @@ def main(firstn: Optional[float] = 100,
                     ax.set_title(title)
                     plt.show()
                     plt.tight_layout()
-                    plt.savefig(f'{basename}.png', dpi=600)
-                    plt.savefig(f'{basename}.pdf', dpi=600)
+                    plt.savefig(f'{basename}.png', dpi=dpi)
+                    plt.savefig(f'{basename}.pdf', dpi=dpi)
 
                 plot_correlations(report, 'pearson')
                 plot_correlations(report, 'spearman')
