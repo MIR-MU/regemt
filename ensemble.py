@@ -1,3 +1,4 @@
+import logging
 from typing import Iterable, List, Tuple, Optional, Any
 from functools import lru_cache
 import warnings
@@ -14,6 +15,8 @@ from sklearn.linear_model import (
     Ridge,
     BayesianRidge,
 )
+from sklearn.experimental import enable_iterative_imputer  # noqa
+from sklearn.impute import IterativeImputer
 from sklearn.utils import parallel_backend
 from sklearn.svm import LinearSVR
 from sklearn.model_selection import GridSearchCV
@@ -22,6 +25,8 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.exceptions import ConvergenceWarning
 from tqdm.autonotebook import tqdm
 
+
+LOGGER = logging.getLogger(__name__)
 
 Feature = float
 Features = Tuple[Feature, ...]
@@ -34,6 +39,7 @@ class Regression(ReferenceFreeMetric):
     label = "Regression"
     model: Optional[Model] = None
     judgements: Optional[Judgements] = None
+    imputer: Optional[IterativeImputer] = None
 
     def __init__(self, metrics: Iterable[ReferenceFreeMetric], reference_free: bool = False):
         if reference_free:
@@ -49,11 +55,6 @@ class Regression(ReferenceFreeMetric):
                 results = metric.compute_ref_free(judgements)
             else:
                 results = metric.compute(judgements)
-            are_finite = np.isfinite(results)
-            if not np.all(are_finite):
-                num_non_finite = len(results) - np.sum(are_finite)
-                message = f'{num_non_finite} out of {len(results)} results returned by {metric} are not finite'
-                raise ValueError(message)
             metric_features_transposed.append(results)
         metric_features = list(zip(*metric_features_transposed))
         return metric_features
@@ -65,16 +66,60 @@ class Regression(ReferenceFreeMetric):
             other_features.append((float(len(source)), float(len(translation))))
         return other_features
 
-    def _get_features(self, judgements: Judgements) -> List[Features]:
+    def _get_features(self, judgements: Judgements, random_state: int = 42,
+                      fit_imputer: bool = False) -> List[Features]:
         metric_features_list = self._get_metric_features(judgements)
         other_features_list = self._get_other_features(judgements)
         features = []
         for metric_features, other_features in zip(metric_features_list, other_features_list):
             features.append((*metric_features, *other_features))
+
+        features_array = np.array(features, dtype=float)
+        finite_indices = np.isfinite(features_array)
+        num_non_finite = np.sum(np.all(finite_indices, axis=0))
+        features_array[~finite_indices] = np.nan
+
+        if fit_imputer:
+            self.imputer = IterativeImputer(random_state=random_state).fit(features_array)
+
+        if num_non_finite:
+            if self.imputer is not None:
+                imputed_features = list(map(tuple, self.imputer.transform(features_array)))
+                assert len(imputed_features) == len(features)
+                LOGGER.warning(f'Imputed {num_non_finite} samples out of {len(features)} with non-finite values')
+                features = imputed_features
+            else:
+                msg = f'{num_non_finite} samples out of {len(features)} contain non-finite values, but no fit imputer'
+                raise ValueError(msg)
+
         return features
 
     def _get_scores(self, judgements: Judgements) -> Scores:
         return list(judgements.scores)
+
+    def _get_features_and_scores(self, judgements, random_state: int = 42,
+                                 fit_imputer: bool = False) -> Tuple[List[Features], Scores]:
+        X, y = self._get_features(judgements), self._get_scores(judgements)
+        assert len(X) == len(y)
+
+        num_non_finite = np.sum(np.all(np.isfinite(X), axis=0))
+        array_X = np.array(X, dtype=np.float64)
+        array_X[~np.isfinite(array_X)] = np.nan
+
+        if fit_imputer:
+            self.imputer = IterativeImputer(random_state=random_state).fit(array_X)
+
+        if num_non_finite:
+            if self.imputer is not None:
+                imputed_X = list(map(tuple, self.imputer.transform(array_X)))
+                assert len(X) == len(imputed_X)
+                LOGGER.warning(f'Imputed {num_non_finite} samples out of {len(X)} with non-finite values')
+                X = imputed_X
+            else:
+                message = f'{num_non_finite} samples out of {len(X)} contain non-finite values, but no imputer exists'
+                raise ValueError(message)
+
+        return (X, y)
 
     def _get_models(self, select_features: bool = True,
                     optimize_hyperparameters: bool = True,
@@ -167,7 +212,7 @@ class Regression(ReferenceFreeMetric):
 
     def fit(self, judgements: Judgements):
         print(f'{self}: getting features on train judgements')
-        X, y = self._get_features(judgements), self._get_scores(judgements)
+        X, y = self._get_features(judgements, fit_imputer=True), self._get_scores(judgements)
 
         train_judgements, test_judgements = judgements.split()
         train_X, train_y = X[:len(train_judgements)], y[:len(train_judgements)]
