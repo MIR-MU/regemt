@@ -17,7 +17,7 @@ from ensemble import Regression
 
 
 def main(firstn: Optional[float] = None,
-         reference_frees: Tuple[bool, ...] = (False, True),
+         reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = ('DA', 'MQM', 'catastrophic'),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
