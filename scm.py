@@ -41,7 +41,7 @@ class ContextualSCM(ReferenceFreeMetric):
 
         w2v_model = KeyedVectors(self.embedder.vector_size, len(dictionary), dtype=float)
         for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, embeddings),
-                                                        desc=f'{self.label}: construct contextual embeddings'):
+                                                        desc=f'{self}: construct contextual embeddings'):
             for token, token_embedding in zip(augmented_tokens, tokens_embeddings):
                 _add_word_to_kv(w2v_model, None, token, token_embedding, len(dictionary))
 
@@ -54,7 +54,7 @@ class ContextualSCM(ReferenceFreeMetric):
 
         zipped_corpus = list(zip(augmented_reference_corpus.corpus, augmented_translation_corpus.corpus))
         for augm_ref_tokens, augm_trans_tokens in tqdm(zipped_corpus,
-                                                       desc=f'{self.label}: patch similarity matrix'):
+                                                       desc=f'{self}: patch similarity matrix'):
             shared_tokens = set(chain(
                 map(augmented_reference_corpus.unaugment_token, augm_ref_tokens),
                 map(augmented_translation_corpus.unaugment_token, augm_trans_tokens),
@@ -124,7 +124,7 @@ class DecontextualizedSCM(ReferenceFreeMetric):
 
         w2v_model = KeyedVectors(self.embedder.vector_size, len(decontextualized_embeddings), dtype=float)
         for token, token_embeddings in tqdm(decontextualized_embeddings.items(),
-                                            f'{self.label}: construct decontextualized embeddings'):
+                                            f'{self}: construct decontextualized embeddings'):
             token_embedding = np.mean(token_embeddings, axis=0)
             _add_word_to_kv(w2v_model, None, token, token_embedding, len(decontextualized_embeddings))
         annoy = AnnoyIndexer(w2v_model, num_trees=1)

@@ -155,7 +155,7 @@ class Regression(ReferenceFreeMetric):
             mlp_regressor(),
         ]
 
-        for model in tqdm(models, desc=f'{self.label}: model selection'):
+        for model in tqdm(models, desc=f'{self}: model selection'):
             estimator = model['model']
             if optimize_hyperparameters and model['hyperparameters'] is not None:
                 estimator = GridSearchCV(estimator, model['hyperparameters'])
@@ -164,7 +164,7 @@ class Regression(ReferenceFreeMetric):
             yield make_pipeline(StandardScaler(), estimator)
 
     def fit(self, judgements: Judgements):
-        print(f'{self.label}: getting features on train judgements')
+        print(f'{self}: getting features on train judgements')
         X, y = self._get_features(judgements), self._get_scores(judgements)
 
         train_judgements, test_judgements = judgements.split()
@@ -182,9 +182,9 @@ class Regression(ReferenceFreeMetric):
                 if r2 > best_r2:
                     best_model, best_r2 = model, r2
         assert best_model is not None
-        print(f'{self.label}: selected model {best_model}')
+        print(f'{self}: selected model {best_model}')
 
-        print(f'{self.label}: fitting the selected model')
+        print(f'{self}: fitting the selected model')
         best_model.fit(X, y)
 
         self.judgements = judgements
@@ -197,10 +197,10 @@ class Regression(ReferenceFreeMetric):
         if self.judgements.overlaps(judgements):
             raise ValueError('Train and test judgements overlap')
 
-        print(f'{self.label}: getting features on test judgements')
+        print(f'{self}: getting features on test judgements')
         X = self._get_features(judgements)
 
-        print(f'{self.label}: making predictions with the selected model')
+        print(f'{self}: making predictions with the selected model')
         y = self.model.predict(X)
         return y
 

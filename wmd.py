@@ -38,7 +38,7 @@ class ContextualWMD(ReferenceFreeMetric):
 
         w2v_model = KeyedVectors(self.embedder.vector_size, len(dictionary), dtype=float)
         for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, embeddings),
-                                                        desc=f'{self.label}: construct contextual embeddings',
+                                                        desc=f'{self}: construct contextual embeddings',
                                                         total=len(corpus)):
             for token, token_embedding in zip(augmented_tokens, tokens_embeddings):
                 _add_word_to_kv(w2v_model, None, token, token_embedding, len(dictionary))
@@ -94,7 +94,7 @@ class DecontextualizedWMD(ReferenceFreeMetric):
 
         w2v_model = KeyedVectors(self.embedder.vector_size, len(decontextualized_embeddings), dtype=float)
         for token, token_embeddings in tqdm(decontextualized_embeddings.items(),
-                                            f'{self.label}: construct decontextualized embeddings'):
+                                            f'{self}: construct decontextualized embeddings'):
             token_embedding = np.mean(token_embeddings, axis=0)
             _add_word_to_kv(w2v_model, None, token, token_embedding, len(decontextualized_embeddings))
 
