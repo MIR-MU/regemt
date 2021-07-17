@@ -28,6 +28,9 @@ def main(firstn: Optional[float] = None,
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
+            if judgements_type == 'catastrophic' and not reference_free:
+                continue
+
             print("Evaluating %s judgements" % judgements_type)
 
             reports: List[Report] = []
