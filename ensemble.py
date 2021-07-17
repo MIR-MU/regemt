@@ -15,7 +15,7 @@ from sklearn.linear_model import (
     BayesianRidge,
 )
 from sklearn.utils import parallel_backend
-from sklearn.svm import SVR
+from sklearn.svm import LinearSVR
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
@@ -118,9 +118,8 @@ class Regression(ReferenceFreeMetric):
 
         def svr():
             return {
-                'model': SVR(kernel='rbf'),
+                'model': LinearSVR(dual=False, loss='squared_epsilon_insensitive'),
                 'hyperparameters': {
-                    'kernel': ['linear', 'rbf'],
                     'C': np.logspace(-2, 3, 10),
                 },
                 'can_select_features': True,
