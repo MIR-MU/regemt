@@ -115,6 +115,9 @@ class Metric(abc.ABC):
     def compute(self, test_judgements: Judgements) -> List[float]:
         pass
 
+    def __repr__(self) -> str:
+        return self.label
+
 
 class ReferenceFreeMetric(Metric):
 

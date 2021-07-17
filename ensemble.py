@@ -48,6 +48,11 @@ class Regression(ReferenceFreeMetric):
                 results = metric.compute_ref_free(judgements)
             else:
                 results = metric.compute(judgements)
+            are_finite = np.isfinite(results)
+            if not np.all(are_finite):
+                num_non_finite = len(results) - np.sum(are_finite)
+                message = f'{num_non_finite} out of {len(results)} results returned by {metric} are not finite'
+                raise ValueError(message)
             metric_features_transposed.append(results)
         metric_features = list(zip(*metric_features_transposed))
         return metric_features
