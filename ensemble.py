@@ -158,8 +158,11 @@ class Regression(ReferenceFreeMetric):
             estimator = model['model']
             if optimize_hyperparameters and model['hyperparameters'] is not None:
                 estimator = GridSearchCV(estimator, model['hyperparameters'])
+                importance_getter = 'best_estimator_.coef_'
+            else:
+                importance_getter = 'auto'
             if select_features and model['can_select_features']:
-                estimator = RFECV(estimator)
+                estimator = RFECV(estimator, importance_getter=importance_getter)
             yield make_pipeline(StandardScaler(), estimator)
 
     def fit(self, judgements: Judgements):
