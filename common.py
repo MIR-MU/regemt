@@ -40,7 +40,7 @@ class Judgements:
                 new_scores[(src_text, translation)].append(score)
             if len(new_src_texts) < len(src_texts):
                 num_non_uniques = len(src_texts) - len(new_src_texts)
-                msg = f'Removed {num_non_uniques} non-unique judgements: {len(src_texts)} -> {len(new_src_texts)}'
+                msg = f'Averaged {num_non_uniques} non-unique judgements: {len(src_texts)} -> {len(new_src_texts)}'
                 LOGGER.warning(msg)
             src_texts, references, translations = new_src_texts, new_references, new_translations
             scores = [mean(new_scores[(src_text, translation)])
