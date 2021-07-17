@@ -183,11 +183,11 @@ class Regression(ReferenceFreeMetric):
                 r2 = model.score(test_X, test_y)
                 if r2 > best_r2:
                     best_model, best_r2 = model, r2
-        assert best_model is not None
-        print(f'{self}: selected model {best_model}')
+            assert best_model is not None
+            print(f'{self}: selected model {best_model}')
 
-        print(f'{self}: fitting the selected model')
-        best_model.fit(X, y)
+            print(f'{self}: fitting the selected model')
+            best_model.fit(X, y)
 
         self.judgements = judgements
         self.model = best_model
