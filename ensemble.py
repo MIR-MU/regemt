@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import RegressorMixin as Model
+from sklearn.feature_selection import RFECV
 from sklearn.linear_model import (
     LinearRegression,
     SGDRegressor,
@@ -75,82 +76,74 @@ class Regression(ReferenceFreeMetric):
     def _get_scores(self, judgements: Judgements) -> Scores:
         return list(judgements.scores)
 
-    def _get_models(self, optimize_hyperparameters: bool = False, random_state: float = 42) -> Model:
-        def linear_regression() -> Model:
-            return make_pipeline(
-                StandardScaler(),
-                GridSearchCV(
-                    LinearRegression(),
-                    {
-                        'normalize': [True, False],
-                        'positive': [True, False],
-                    },
-                ) if optimize_hyperparameters else LinearRegression()
-            )
+    def _get_models(self, select_features: bool = True,
+                    optimize_hyperparameters: bool = True,
+                    random_state: float = 42) -> Model:
 
-        def sgd_regressor() -> Model:
-            return make_pipeline(
-                StandardScaler(),
-                GridSearchCV(
-                    SGDRegressor(random_state=random_state),
-                    {
-                        'penalty': ['l2', 'l1', 'elasticnet'],
-                        'early_stopping': [True, False],
-                    },
-                ) if optimize_hyperparameters else SGDRegressor(random_state=random_state)
-            )
+        def linear_regression():
+            return {
+                'model': LinearRegression(),
+                'hyperparameters': {
+                    'normalize': [True, False],
+                    'positive': [True, False],
+                },
+                'can_select_features': True,
+            }
 
-        def ridge() -> Model:
-            return make_pipeline(
-                StandardScaler(),
-                GridSearchCV(
-                    Ridge(random_state=random_state),
-                    {
-                        'alpha': np.logspace(1, 4, 50),
-                    },
-                ) if optimize_hyperparameters else Ridge(random_state=random_state)
-            )
+        def sgd_regressor():
+            return {
+                'model': SGDRegressor(random_state=random_state),
+                'hyperparameters': {
+                    'penalty': ['l2', 'l1', 'elasticnet'],
+                    'early_stopping': [True, False],
+                },
+                'can_select_features': True,
+            }
 
-        def bayesian_ridge() -> Model:
-            return make_pipeline(
-                StandardScaler(),
-                BayesianRidge(),
-            )
+        def ridge():
+            return {
+                'model': Ridge(random_state=random_state),
+                'hyperparameters': {
+                    'alpha': np.logspace(1, 4, 10),
+                },
+                'can_select_features': True,
+            }
 
-        def svr() -> Model:
-            return make_pipeline(
-                StandardScaler(),
-                GridSearchCV(
-                    SVR(),
-                    {
-                        'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-                        'C': np.logspace(-2, 3, 50),
-                    },
-                ) if optimize_hyperparameters else SVR(kernel='rbf')
-            )
+        def bayesian_ridge():
+            return {
+                'model': BayesianRidge(),
+                'hyperparameters': None,
+                'can_select_features': True,
+            }
 
-        def k_nearest_neighbors_regressor() -> Model:
-            return make_pipeline(
-                StandardScaler(),
-                GridSearchCV(
-                    KNeighborsRegressor(),
-                    {
-                        'n_neighbors': range(1, 20, 2),
-                    },
-                ) if optimize_hyperparameters else KNeighborsRegressor()
-            )
+        def svr():
+            return {
+                'model': SVR(kernel='rbf'),
+                'hyperparameters': {
+                    'kernel': ['linear', 'rbf'],
+                    'C': np.logspace(-2, 3, 10),
+                },
+                'can_select_features': True,
+            }
 
-        def mlp_regressor() -> Model:
-            return make_pipeline(
-                StandardScaler(),
-                GridSearchCV(
-                    MLPRegressor(random_state=random_state),
-                    {
-                        'solver': ['lbfgs', 'sgd', 'adam'],
-                        'alpha': np.logspace(1, 4, 50),
-                    },
-                ) if optimize_hyperparameters else MLPRegressor(random_state=random_state)
-            )
+        def k_nearest_neighbors_regressor():
+            return {
+                'model': KNeighborsRegressor(),
+                'hyperparameters': {
+                    'n_neighbors': range(1, 20, 2),
+                },
+                'can_select_features': False,
+            }
+
+        def mlp_regressor():
+            return {
+                'model': MLPRegressor(random_state=random_state),
+                'hyperparameters': {
+                    'solver': ['lbfgs', 'sgd', 'adam'],
+                    'alpha': np.logspace(1, 4, 10),
+                },
+                'can_select_features': False,
+            }
 
         models = [
             linear_regression(),
@@ -163,7 +156,12 @@ class Regression(ReferenceFreeMetric):
         ]
 
         for model in tqdm(models, desc=f'{self.label}: model selection'):
-            yield model
+            estimator = model['model']
+            if optimize_hyperparameters and model['hyperparameters'] is not None:
+                estimator = GridSearchCV(estimator, model['hyperparameters'])
+            if select_features and model['can_select_features']:
+                estimator = RFECV(estimator)
+            yield make_pipeline(StandardScaler(), estimator)
 
     def fit(self, judgements: Judgements):
         print(f'{self.label}: getting features on train judgements')
