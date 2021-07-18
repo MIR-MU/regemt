@@ -76,20 +76,21 @@ class Regression(ReferenceFreeMetric):
 
         features_array = np.array(features, dtype=float)
         finite_indices = np.isfinite(features_array)
-        num_non_finite = np.sum(np.all(finite_indices, axis=0))
+        num_non_finite = len(features) - np.sum(np.all(finite_indices, axis=1))
         features_array[~finite_indices] = np.nan
 
         if fit_imputer:
+            print(f'{self}: Fitting an imputer on {len(features)} samples of {features_array.shape[1]} features')
             self.imputer = IterativeImputer(random_state=random_state).fit(features_array)
 
         if num_non_finite:
             if self.imputer is not None:
                 imputed_features = list(map(tuple, self.imputer.transform(features_array)))
                 assert len(imputed_features) == len(features)
-                LOGGER.warning(f'Imputed {num_non_finite} samples out of {len(features)} with non-finite values')
+                LOGGER.warning(f'Imputed {num_non_finite} out of {len(features)} samples with non-finite values')
                 features = imputed_features
             else:
-                msg = f'{num_non_finite} samples out of {len(features)} contain non-finite values, but no fit imputer'
+                msg = f'{num_non_finite} out of {len(features)} samples contain non-finite values, but no fit imputer'
                 raise ValueError(msg)
 
         return features
