@@ -115,7 +115,6 @@ def main(firstn: Optional[float] = None,
 
                     correlations = pd.DataFrame(report).applymap(float).corr(method=method).applymap(abs)
 
-                    plt.clf()
                     fig, ax = plt.subplots(figsize=figsize)
                     sns.heatmap(correlations, annot=True, ax=ax)
                     ax.set_title(title)
@@ -123,6 +122,7 @@ def main(firstn: Optional[float] = None,
                     plt.tight_layout()
                     plt.savefig(f'{basename}.png', dpi=dpi)
                     plt.savefig(f'{basename}.pdf', dpi=dpi)
+                    plt.close()
 
                 plot_correlations(report, 'pearson')
                 plot_correlations(report, 'spearman')
