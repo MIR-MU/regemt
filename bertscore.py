@@ -29,7 +29,7 @@ class BERTScore(ReferenceFreeMetric):
 
         batch_iter = range(0, len(judgements), self.batch_size)
         for i, j in tqdm(((batch_i, batch_i+self.batch_size) for batch_i in batch_iter),
-                         desc=self.label, total=int(len(judgements) / self.batch_size)):
+                         desc=self.label, total=len(batch_iter)):
             sources = judgements.src_texts[i:j] if self.reference_free else judgements.references[i:j]
             b_prec, b_rec, b_f_scores = self.scorer.score(judgements.translations[i:j], sources)
             f_scores.extend(b_f_scores.detach().cpu().tolist())
