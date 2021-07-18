@@ -54,6 +54,10 @@ class TransitionModel:
         return all_tags, transition_matrix_np / max(transition_matrix_np.sum(), 1)
 
     @staticmethod
+    def supports(lang: str) -> bool:
+        return lang in ("no", "en", "de", "zh")
+
+    @staticmethod
     def _init_tagger(lang: str) -> Callable[[str], Iterable[Tuple[str, str]]]:
         if lang == "no":
             model_id = "nb_core_news_lg"
@@ -93,11 +97,17 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         Compares syntactic compositionality's perplexity on train distribution and outer distribution.
         Syntactic compositionality is a transition matrix of PoS tags
         """
+        assert self.__class__.supports(tgt_lang)
         self.tgt_lang = tgt_lang
         self.reference_free = reference_free
 
         if reference_free:
+            assert self.__class__.supports(src_lang)
             self.src_lang = src_lang
+
+    @staticmethod
+    def supports(lang: str) -> bool:
+        return TransitionModel.supports(lang)
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:

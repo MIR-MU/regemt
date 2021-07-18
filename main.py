@@ -8,12 +8,14 @@ import seaborn as sns
 import transformers
 from matplotlib import pyplot as plt
 from bertscore import BERTScore
-from common import Evaluator, Report
+from common import Evaluator, Report, Metric
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
 from scm import SCM, ContextualSCM, DecontextualizedSCM
 from wmd import WMD, ContextualWMD, DecontextualizedWMD
 from ensemble import Regression
+
+LOGGER = logging.getLogger(__name__)
 
 
 def main(firstn: Optional[float] = None,
@@ -22,7 +24,7 @@ def main(firstn: Optional[float] = None,
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
          figsize: Tuple[int, int] = (10, 10),
-         enable_compositionality: bool = False,
+         enable_compositionality: bool = True,
          enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False):
     for reference_free in reference_frees:
@@ -43,39 +45,54 @@ def main(firstn: Optional[float] = None,
                 if tgt_langs is not None and tgt_lang not in tgt_langs:
                     continue
 
-                metrics = [
-                    BERTScore(tgt_lang=tgt_lang, reference_free=reference_free),
-                    ContextualWMD(tgt_lang=tgt_lang, reference_free=reference_free),
+                metrics = []
+
+                def make_metric(cls, *args, **kwargs) -> Optional[Metric]:
+                    if not cls.supports(tgt_lang):
+                        LOGGER.warning(f'{cls} does not support tgt_lang={tgt_lang}')
+                        return None
+                    if reference_free and not cls.supports(src_lang):
+                        LOGGER.warning(f'{cls} does not support src_lang={src_lang}')
+                        return None
+                    metric = cls(*args, **kwargs)
+                    return metric
+
+                metrics += [
+                    make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
+                    make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
                 ]
 
                 if enable_contextual_scm:
-                    metrics += [ContextualSCM(tgt_lang=tgt_lang, reference_free=reference_free)]
+                    metrics += [make_metric(ContextualSCM, tgt_lang=tgt_lang, reference_free=reference_free)]
 
                 metrics += [
-                    DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
-                    DecontextualizedWMD(tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
-                    DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
-                    DecontextualizedSCM(tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
+                    make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
+                    make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
+                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
+                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
                 ]
 
                 if enable_fasttext_metrics:
                     metrics += [
-                        SCM(tgt_lang=tgt_lang, use_tfidf=False),
-                        SCM(tgt_lang=tgt_lang, use_tfidf=True),
-                        WMD(tgt_lang=tgt_lang, use_tfidf=False),
-                        WMD(tgt_lang=tgt_lang, use_tfidf=True),
+                        make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=False),
+                        make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=True),
+                        make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=False),
+                        make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=True),
                     ]
 
                 metrics += [
-                    BLEU(),
-                    METEOR(),
+                    make_metric(BLEU),
+                    make_metric(METEOR),
                 ]
 
                 if enable_compositionality:
-                    metrics += [SyntacticCompositionality(src_lang=src_lang, tgt_lang=tgt_lang,
-                                                          reference_free=reference_free)]
+                    metrics += [
+                        make_metric(SyntacticCompositionality, src_lang=src_lang, tgt_lang=tgt_lang,
+                                    reference_free=reference_free)
+                    ]
 
-                metrics = [Regression(metrics, reference_free=reference_free)] + metrics
+                metrics = [make_metric(Regression, metrics, reference_free=reference_free)] + metrics
+                metrics = list(filter(lambda metric: metric is not None, metrics))
 
                 print("Evaluating lang pair %s" % lang_pair)
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
@@ -126,6 +143,7 @@ if __name__ == '__main__':
                     'firstn': 100,
                     'judgements_types': ('MQM',),
                     'src_langs': {'en'},
+                    'enable_compositionality': False,
                     'enable_fasttext_metrics': False,
                 }
             }

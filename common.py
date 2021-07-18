@@ -136,7 +136,11 @@ class Judgements:
 class Metric(abc.ABC):
     label: str = 'None'
 
-    def fit(self, train_judgements: Judgements):
+    @staticmethod
+    def supports(lang: str) -> bool:
+        return True
+
+    def fit(self, train_judgements: Judgements) -> None:
         pass
 
     @abc.abstractmethod
