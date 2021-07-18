@@ -45,6 +45,8 @@ def main(firstn: Optional[float] = None,
                 if tgt_langs is not None and tgt_lang not in tgt_langs:
                     continue
 
+                print("Evaluating lang pair %s" % lang_pair)
+
                 metrics = []
 
                 def make_metric(cls, *args, **kwargs) -> Optional[Metric]:
@@ -94,7 +96,6 @@ def main(firstn: Optional[float] = None,
                 metrics = [make_metric(Regression, metrics, reference_free=reference_free)] + metrics
                 metrics = list(filter(lambda metric: metric is not None, metrics))
 
-                print("Evaluating lang pair %s" % lang_pair)
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
                                       judgements_type=judgements_type,
                                       reference_free=reference_free, firstn=firstn)
