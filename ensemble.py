@@ -229,7 +229,6 @@ class Regression(ReferenceFreeMetric):
                 if r2 > best_r2:
                     best_model, best_r2 = model, r2
             assert best_model is not None
-            print(f'{self}: selected model {best_model}')
 
             print(f'{self}: fitting the selected model')
             best_model.fit(X, y)
