@@ -123,7 +123,7 @@ class Regression(ReferenceFreeMetric):
 
     def _get_models(self, select_features: bool = True,
                     optimize_hyperparameters: bool = True,
-                    random_state: float = 42) -> Model:
+                    random_state: float = 42) -> Iterable[Model]:
 
         def linear_regression():
             return {
