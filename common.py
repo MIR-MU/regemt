@@ -75,17 +75,45 @@ class Judgements:
         return Judgements(src_texts, references, translations, scores, shuffle=False, make_unique=False)
 
     def split(self, split_ratio: float = 0.8) -> Tuple['Judgements', 'Judgements']:
-        pivot = int(round(len(self) * split_ratio))
-        train_judgements, test_judgements = self[:pivot], self[pivot:]
+        unique_src_texts = sorted(set(self.src_texts))
+        pivot = int(round(len(unique_src_texts) * split_ratio))
+        train_unique_src_texts = set(unique_src_texts[:pivot])
+        test_unique_src_texts = set(unique_src_texts[pivot:])
+
+        train_src_texts, train_references, train_translations, train_scores = \
+            [], [] if self.references else None, [], []
+        test_src_texts, test_references, test_translations, test_scores = \
+            [], [] if self.references else None, [], []
+        for row in zip(self.src_texts, self.references or repeat(None), self.translations, self.scores):
+            src_text, reference, translation, score = row
+            assert src_text in train_unique_src_texts | test_unique_src_texts
+            if src_text in train_unique_src_texts:
+                train_src_texts.append(src_text)
+                if train_references is not None:
+                    train_references.append(list(reference))
+                train_translations.append(translation)
+                train_scores.append(score)
+            else:
+                test_src_texts.append(src_text)
+                if test_references is not None:
+                    test_references.append(list(reference))
+                test_translations.append(translation)
+                test_scores.append(score)
+
+        train_judgements = Judgements(train_src_texts, train_references, train_translations, train_scores,
+                                      shuffle=False, make_unique=False)
+        test_judgements = Judgements(test_src_texts, test_references, test_translations, test_scores,
+                                     shuffle=False, make_unique=False)
         assert len(train_judgements) + len(test_judgements) == len(self)
         assert not train_judgements.overlaps(test_judgements)
+
         return (train_judgements, test_judgements)
 
     def overlaps(self, other: 'Judgements') -> bool:
         if self == other:
             return True
-        self_corpus = set(zip(self.src_texts, self.translations, self.scores))
-        other_corpus = set(zip(other.src_texts, other.translations, other.scores))
+        self_corpus = set(self.src_texts)
+        other_corpus = set(other.src_texts)
         return len(self_corpus & other_corpus) > 0
 
     def __eq__(self, other: Any) -> bool:
