@@ -29,6 +29,7 @@ class FastTextEmbedder:
             if not path.exists():
                 print(f'Downloading fastText embeddings for language {self.lang}')
                 url = f'https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{self.lang}.300.vec.gz'
+                base_path.mkdir(parents=False, exist_ok=True)
                 urlretrieve(url, path)
             print(f'Loading fastText embeddings for language {self.lang}')
             keyedvectors = KeyedVectors.load_word2vec_format(path)
