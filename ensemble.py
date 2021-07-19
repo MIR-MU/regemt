@@ -80,7 +80,7 @@ class Regression(ReferenceFreeMetric):
         features_array[~finite_indices] = np.nan
 
         if fit_imputer:
-            print(f'{self}: Fitting an imputer on {len(features)} samples of {features_array.shape[1]} features')
+            print(f'{self}: fitting an imputer on {len(features)} samples of {features_array.shape[1]} features')
             self.imputer = IterativeImputer(random_state=random_state).fit(features_array)
 
         if num_non_finite:
