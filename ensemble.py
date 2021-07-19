@@ -215,9 +215,7 @@ class Regression(ReferenceFreeMetric):
         print(f'{self}: getting features on train judgements')
         X, y = self._get_features(judgements, fit_imputer=True), self._get_scores(judgements)
 
-        train_judgements, test_judgements = judgements.split()
-        train_X, train_y = X[:len(train_judgements)], y[:len(train_judgements)]
-        test_X, test_y = X[len(train_judgements):], y[len(train_judgements):]
+        (train_judgements, [train_X, train_y]), (test_judgements, [test_X, test_y]) = judgements.split(X, y)
         assert (len(train_X), len(train_y)) == (len(train_judgements), len(train_judgements))
         assert (len(test_X), len(test_y)) == (len(test_judgements), len(test_judgements))
 

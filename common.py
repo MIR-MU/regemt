@@ -74,18 +74,22 @@ class Judgements:
         scores = list(self.scores[indexes])
         return Judgements(src_texts, references, translations, scores, shuffle=False, make_unique=False)
 
-    def split(self, split_ratio: float = 0.8) -> Tuple['Judgements', 'Judgements']:
+    def split(self, *other_lists: List, split_ratio: float = 0.8) -> Tuple[Tuple['Judgements', List[List]],
+                                                                           Tuple['Judgements', List[List]]]:
+        for other_list in other_lists:
+            assert len(other_list) == len(self)
+
         unique_src_texts = sorted(set(self.src_texts))
         pivot = int(round(len(unique_src_texts) * split_ratio))
         train_unique_src_texts = set(unique_src_texts[:pivot])
         test_unique_src_texts = set(unique_src_texts[pivot:])
 
-        train_src_texts, train_references, train_translations, train_scores = \
-            [], [] if self.references else None, [], []
-        test_src_texts, test_references, test_translations, test_scores = \
-            [], [] if self.references else None, [], []
-        for row in zip(self.src_texts, self.references or repeat(None), self.translations, self.scores):
-            src_text, reference, translation, score = row
+        train_src_texts, train_references, train_translations, train_scores, train_other_lists = \
+            [], [] if self.references else None, [], [], [[] for other_list in other_lists]
+        test_src_texts, test_references, test_translations, test_scores, test_other_lists = \
+            [], [] if self.references else None, [], [], [[] for other_list in other_lists]
+        for row in zip(self.src_texts, self.references or repeat(None), self.translations, self.scores, *other_lists):
+            src_text, reference, translation, score, *other_elements = row
             assert src_text in train_unique_src_texts | test_unique_src_texts
             if src_text in train_unique_src_texts:
                 train_src_texts.append(src_text)
@@ -93,12 +97,16 @@ class Judgements:
                     train_references.append(list(reference))
                 train_translations.append(translation)
                 train_scores.append(score)
+                for train_other_list, other_element in zip(train_other_lists, other_elements):
+                    train_other_list.append(other_element)
             else:
                 test_src_texts.append(src_text)
                 if test_references is not None:
                     test_references.append(list(reference))
                 test_translations.append(translation)
                 test_scores.append(score)
+                for test_other_list, other_element in zip(test_other_lists, other_elements):
+                    test_other_list.append(other_element)
 
         train_judgements = Judgements(train_src_texts, train_references, train_translations, train_scores,
                                       shuffle=False, make_unique=False)
@@ -107,7 +115,7 @@ class Judgements:
         assert len(train_judgements) + len(test_judgements) == len(self)
         assert not train_judgements.overlaps(test_judgements)
 
-        return (train_judgements, test_judgements)
+        return (train_judgements, train_other_lists), (test_judgements, test_other_lists)
 
     def overlaps(self, other: 'Judgements') -> bool:
         if self == other:
@@ -304,9 +312,9 @@ class Evaluator:
         judgements = Judgements(src_texts, references, translations, scores)
 
         if split == "train":
-            judgements, _ = judgements.split()
+            (judgements, []), _ = judgements.split()
         elif split == "test":
-            _, judgements = judgements.split()
+            _, (judgements, []) = judgements.split()
         else:
             raise ValueError(split)
 
