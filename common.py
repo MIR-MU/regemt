@@ -219,7 +219,7 @@ class Evaluator:
         else:
             raise ValueError(judgements_type)
 
-    def load_judgements(self, split: str = "train", error_type: str = None,
+    def load_judgements(self, split: str = "train", error_type: Optional[str] = None,
                         first_reference_only: bool = True) -> Judgements:
         if self.judgements_type == "DA":
             split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
