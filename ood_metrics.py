@@ -92,7 +92,7 @@ class SyntacticCompositionality(ReferenceFreeMetric):
     src_lang: Optional[str] = None
     label = "Compositionality"
 
-    def __init__(self, tgt_lang: str, src_lang: str = None, reference_free: bool = False):
+    def __init__(self, tgt_lang: str, src_lang: Optional[str] = None, reference_free: bool = False):
         """
         Compares syntactic compositionality's perplexity on train distribution and outer distribution.
         Syntactic compositionality is a transition matrix of PoS tags
