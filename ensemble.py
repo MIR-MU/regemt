@@ -3,7 +3,7 @@ from typing import Iterable, List, Tuple, Optional, Any
 from functools import lru_cache
 import warnings
 
-from common import ReferenceFreeMetric, Judgements
+from common import Metric, ReferenceFreeMetric, Judgements
 import numpy as np
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
@@ -41,7 +41,7 @@ class Regression(ReferenceFreeMetric):
     judgements: Optional[Judgements] = None
     imputer: Optional[IterativeImputer] = None
 
-    def __init__(self, metrics: Iterable[ReferenceFreeMetric], reference_free: bool = False):
+    def __init__(self, metrics: Iterable[Metric], reference_free: bool = False):
         if reference_free:
             metrics = [metric for metric in metrics if isinstance(metric, ReferenceFreeMetric)]
 
@@ -52,6 +52,7 @@ class Regression(ReferenceFreeMetric):
         metric_features_transposed = []
         for metric in self.metrics:
             if self.reference_free:
+                assert isinstance(metric, ReferenceFreeMetric)
                 results = metric.compute_ref_free(judgements)
             else:
                 results = metric.compute(judgements)
