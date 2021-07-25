@@ -168,10 +168,10 @@ def main(firstn: Optional[float] = None,
                             plot_ablation_study('spearman')
                             break
 
-                        worst_label, worst_correlation = None, float('inf')
-                        for label, correlation in correlations['human'].iteritems():
-                            if label not in ('human', regression.label) and correlation < worst_correlation:
-                                worst_label, worst_correlation = label, correlation
+                        worst_label, highest_correlation = None, 0
+                        for label, correlation in correlations.max(axis=0).iteritems():
+                            if label not in ('human', regression.label) and correlation > highest_correlation:
+                                worst_label, highest_correlation = label, correlation
                         assert worst_label is not None
 
                         len_before = len(base_metrics)
