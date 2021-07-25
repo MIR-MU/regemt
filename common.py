@@ -211,8 +211,7 @@ class Evaluator:
         all_langs = self.langs_for_judgements(judgements_type)
 
         if test_lang_selection == "leave-one-out" and test_lang_pair in all_langs:
-            train_langs = [lang for lang in all_langs if lang != test_lang_pair]
-            self.train_judgements = self.load_judgements(train_langs, "train")
+            self.train_judgements = self.load_judgements(all_langs, "train")
             self.test_judgements = self.load_judgements([test_lang_pair], "test")
         else:
             raise ValueError("%s: %s: %s" % (judgements_type, test_lang_selection, test_lang_pair))
