@@ -94,6 +94,7 @@ def main(firstn: Optional[float] = None,
                     ]
 
                 metrics = [make_metric(Regression, metrics, reference_free=reference_free)] + metrics
+                metrics += [make_metric(Regression, None, reference_free=reference_free)]
                 metrics = list(filter(lambda metric: metric is not None, metrics))
 
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
