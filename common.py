@@ -2,7 +2,7 @@ import abc
 import os
 from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
 from statistics import mean
-from itertools import repeat
+from itertools import repeat, chain
 import logging
 
 import pandas as pd
@@ -234,7 +234,7 @@ class Evaluator:
     def load_judgements(self, lang_pairs: List[str], split: str = "train",
                         error_type: Optional[str] = None, first_reference_only: bool = True) -> Judgements:
 
-        src_texts_all, references_all, translations_all, scores_all = [], [], [], []
+        judgements_all = []
 
         for lang_pair in lang_pairs:
             if self.judgements_type == "DA":
@@ -322,26 +322,22 @@ class Evaluator:
             else:
                 raise ValueError(self.judgements_type)
 
-            if self.reference_free:
-                references = None
+            judgements = Judgements(src_texts, references, translations, scores)
 
-            src_texts_all.extend(src_texts)
-            if not self.reference_free:
-                references_all.extend(references)
-            translations_all.extend(translations)
-            scores_all.extend(scores)
+            if split == "train":
+                (judgements, []), _ = judgements.split()
+            elif split == "test":
+                _, (judgements, []) = judgements.split()
+            else:
+                raise ValueError(split)
+            judgements_all.append(judgements)
 
-        if self.reference_free:
-            references_all = None
-
-        judgements = Judgements(src_texts_all, references_all, translations_all, scores_all)
-
-        if split == "train":
-            (judgements, []), _ = judgements.split()
-        elif split == "test":
-            _, (judgements, []) = judgements.split()
-        else:
-            raise ValueError(split)
+        # unify judgements for given split over all languages
+        judgements = Judgements(*(list(chain(*[j.src_texts for j in judgements_all])),
+                                  list(chain(*[j.references for j in judgements_all]))
+                                  if not self.reference_free else None,
+                                  list(chain(*[j.translations for j in judgements_all])),
+                                  list(chain(*[j.scores for j in judgements_all]))))
 
         if self.firstn is not None:
             if self.firstn > len(judgements):
