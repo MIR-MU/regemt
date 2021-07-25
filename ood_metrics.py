@@ -3,6 +3,7 @@ from functools import lru_cache
 
 import numpy as np
 import spacy
+from tqdm.autonotebook import tqdm
 
 from common import Judgements, ReferenceFreeMetric
 
@@ -112,12 +113,14 @@ class SyntacticCompositionality(ReferenceFreeMetric):
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            base_transitions = [TransitionModel([src_text], self.src_lang) for src_text in judgements.src_texts]
+            base_transitions = [TransitionModel([src_text], self.src_lang)
+                                for src_text in tqdm(judgements.src_texts, desc=self.label)]
         else:
             base_transitions = [TransitionModel([ref_texts[0]], self.tgt_lang)
-                                for ref_texts in judgements.references]
+                                for ref_texts in tqdm(judgements.references, desc=self.label)]
 
-        translated_model = [TransitionModel([t_text], self.tgt_lang) for t_text in judgements.translations]
+        translated_model = [TransitionModel([t_text], self.tgt_lang)
+                            for t_text in tqdm(judgements.translations, desc=self.label)]
 
         distances = [base_t.distance(translated_t) for base_t, translated_t in zip(base_transitions, translated_model)]
 
