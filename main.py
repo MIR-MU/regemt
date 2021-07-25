@@ -8,6 +8,7 @@ import pandas as pd
 import seaborn as sns
 import transformers
 from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from bertscore import BERTScore
 from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR
@@ -131,7 +132,7 @@ def main(firstn: Optional[float] = None,
                 plot_correlations(report, 'pearson')
                 plot_correlations(report, 'spearman')
 
-                def plot_metric(metric: Regression, max_len: int = 100, dpi: int = 300) -> None:
+                def plot_metric(metric: Regression, max_len: int = 1000, dpi: int = 300) -> None:
                     if metric.model is None:
                         raise ValueError('Using plot_metric() before fit()')
 
@@ -144,8 +145,13 @@ def main(firstn: Optional[float] = None,
                     fig, ax = plt.subplots(figsize=figsize)
                     X = [[i, j] for i, j in product(range(max_len + 1), range(max_len + 1))]
                     Y = metric.model.predict(X).reshape((max_len + 1, max_len + 1))
-                    ax.imshow(Y, interpolation='none')
+                    ai = ax.imshow(Y, interpolation='none', origin='lower')
+                    divider = make_axes_locatable(ax)
+                    cax = divider.append_axes('right', size='5%', pad=0.05)
+                    fig.colorbar(ai, cax=cax)
                     ax.set_title(title)
+                    ax.set_xlabel('source length' if reference_free else 'reference length')
+                    ax.set_ylabel('translation length')
                     plt.show()
                     plt.tight_layout()
                     plt.savefig(f'{basename}.png', dpi=dpi)
@@ -153,7 +159,6 @@ def main(firstn: Optional[float] = None,
                     plt.close()
 
                 plot_metric(regression_baseline)
-                plot_metric(regression)
 
     print("Done")
 

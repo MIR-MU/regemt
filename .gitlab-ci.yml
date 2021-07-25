@@ -44,7 +44,5 @@ Unit tests:
   artifacts:
     paths:
       - heatmap-*.png
-      - heatmap-*.pdf
       - metric-*.png
-      - metric-*.pdf
     expire_in: 1 week
