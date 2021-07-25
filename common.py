@@ -235,8 +235,6 @@ class Evaluator:
                         error_type: Optional[str] = None, first_reference_only: bool = True) -> Judgements:
 
         src_texts_all, references_all, translations_all, scores_all = [], [], [], []
-        if self.reference_free:
-            references_all = None
 
         for lang_pair in lang_pairs:
             if self.judgements_type == "DA":
@@ -332,6 +330,9 @@ class Evaluator:
                 references_all.extend(references)
             translations_all.extend(translations)
             scores_all.extend(scores)
+
+        if self.reference_free:
+            references_all = None
 
         judgements = Judgements(src_texts_all, references_all, translations_all, scores_all)
 
