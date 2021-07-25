@@ -38,14 +38,14 @@ def main(firstn: Optional[float] = None,
             reports: List[Report] = []
             langs = Evaluator.langs_for_judgements(judgements_type)
 
-            for lang_pair in langs:
-                src_lang, tgt_lang = lang_pair.split("-")
+            for test_lang_pair in langs:
+                src_lang, tgt_lang = test_lang_pair.split("-")
                 if src_langs is not None and src_lang not in src_langs:
                     continue
                 if tgt_langs is not None and tgt_lang not in tgt_langs:
                     continue
 
-                print("Evaluating lang pair %s" % lang_pair)
+                print("Evaluating lang pair %s" % test_lang_pair)
 
                 metrics = []
 
@@ -96,9 +96,8 @@ def main(firstn: Optional[float] = None,
                 metrics = [make_metric(Regression, metrics, reference_free=reference_free)] + metrics
                 metrics = list(filter(lambda metric: metric is not None, metrics))
 
-                evaluator = Evaluator("data_dir", lang_pair, metrics,
-                                      judgements_type=judgements_type,
-                                      reference_free=reference_free, firstn=firstn)
+                evaluator = Evaluator("data_dir", test_lang_pair, metrics,
+                                      judgements_type=judgements_type, reference_free=reference_free, firstn=firstn)
                 report = evaluator.evaluate()
                 reports.append(report)
 
