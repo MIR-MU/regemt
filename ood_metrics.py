@@ -60,13 +60,13 @@ class TransitionModel:
     @staticmethod
     def _init_tagger(lang: str) -> Callable[[str], Iterable[Tuple[str, str]]]:
         if lang == "no":
-            model_id = "nb_core_news_lg"
+            model_id = "nb_core_news_md"
         elif lang == "en":
-            model_id = "en_core_web_trf"
+            model_id = "en_core_web_md"
         elif lang == "de":
-            model_id = "de_dep_news_trf"
+            model_id = "de_core_news_md"
         elif lang == "zh":
-            model_id = "zh_core_web_trf"
+            model_id = "zh_core_web_md"
         else:
             raise ValueError("Language '%s' has no defined tagger" % lang)
 
