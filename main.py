@@ -1,4 +1,5 @@
 import os
+from itertools import product
 import logging
 from typing import Tuple, Set, Optional, List
 import sys
@@ -8,7 +9,7 @@ import seaborn as sns
 import transformers
 from matplotlib import pyplot as plt
 from bertscore import BERTScore
-from common import Evaluator, Report, Metric
+from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
 from scm import SCM, ContextualSCM, DecontextualizedSCM
@@ -49,7 +50,7 @@ def main(firstn: Optional[float] = None,
 
                 metrics = []
 
-                def make_metric(cls, *args, **kwargs) -> Optional[Metric]:
+                def make_metric(cls, *args, **kwargs):
                     if not cls.supports(tgt_lang):
                         LOGGER.warning(f'{cls} does not support tgt_lang={tgt_lang}')
                         return None
@@ -93,8 +94,10 @@ def main(firstn: Optional[float] = None,
                                     reference_free=reference_free)
                     ]
 
-                metrics = [make_metric(Regression, metrics, reference_free=reference_free)] + metrics
-                metrics += [make_metric(Regression, None, reference_free=reference_free)]
+                regression = make_metric(Regression, metrics, reference_free=reference_free)
+                regression_baseline = make_metric(Regression, None, reference_free=reference_free)
+                metrics = [regression] + metrics + [regression_baseline]
+
                 metrics = list(filter(lambda metric: metric is not None, metrics))
 
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
@@ -127,6 +130,30 @@ def main(firstn: Optional[float] = None,
 
                 plot_correlations(report, 'pearson')
                 plot_correlations(report, 'spearman')
+
+                def plot_metric(metric: Regression, max_len: int = 100, dpi: int = 300) -> None:
+                    if metric.model is None:
+                        raise ValueError('Using plot_metric() before fit()')
+
+                    title = r"%s%s%s, %s $\rightarrow$ %s" % \
+                        (judgements_type, ' (reference-free)' if reference_free else '',
+                         f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang)
+                    basename = "metric-%s-%s-firstn=%s-reference_free=%s-%s_%s" % \
+                        (str(metric).lower(), judgements_type, firstn, reference_free, src_lang, tgt_lang)
+
+                    fig, ax = plt.subplots(figsize=figsize)
+                    X = [[i, j] for i, j in product(range(max_len + 1), range(max_len + 1))]
+                    Y = metric.model.predict(X).reshape((max_len + 1, max_len + 1))
+                    ax.imshow(Y, interpolation='none')
+                    ax.set_title(title)
+                    plt.show()
+                    plt.tight_layout()
+                    plt.savefig(f'{basename}.png', dpi=dpi)
+                    plt.savefig(f'{basename}.pdf', dpi=dpi)
+                    plt.close()
+
+                plot_metric(regression_baseline)
+                plot_metric(regression)
 
     print("Done")
 
