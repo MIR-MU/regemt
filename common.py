@@ -210,12 +210,12 @@ class Evaluator:
 
         all_langs = self.langs_for_judgements(judgements_type)
 
-        if test_lang_selection == "leave-one-out" and test_lang_pair not in all_langs:
+        if test_lang_selection == "leave-one-out" and test_lang_pair in all_langs:
             train_langs = [l for l in all_langs if l != test_lang_pair]
             self.train_judgements = self.load_judgements(train_langs, "train")
-            self.test_judgements = self.load_judgements(train_langs, "test")
+            self.test_judgements = self.load_judgements([test_lang_pair], "test")
         else:
-            raise ValueError("%s-%s" % (test_lang_selection, test_lang_pair))
+            raise ValueError("%s: %s: %s" % (judgements_type, test_lang_selection, test_lang_pair))
 
         for metric in self.metrics:
             metric.fit(self.train_judgements)
@@ -233,7 +233,11 @@ class Evaluator:
 
     def load_judgements(self, lang_pairs: List[str], split: str = "train",
                         error_type: Optional[str] = None, first_reference_only: bool = True) -> Judgements:
-        judgements_all = pd.DataFrame()
+
+        src_texts_all, references_all, translations_all, scores_all = [], [], [], []
+        if self.reference_free:
+            references_all = None
+
         for lang_pair in lang_pairs:
             if self.judgements_type == "DA":
                 split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
@@ -323,26 +327,30 @@ class Evaluator:
             if self.reference_free:
                 references = None
 
-            judgements = Judgements(src_texts, references, translations, scores)
+            src_texts_all.extend(src_texts)
+            if not self.reference_free:
+                references_all.extend(references)
+            translations_all.extend(translations)
+            scores_all.extend(scores)
 
-            if split == "train":
-                (judgements, []), _ = judgements.split()
-            elif split == "test":
-                _, (judgements, []) = judgements.split()
+        judgements = Judgements(src_texts_all, references_all, translations_all, scores_all)
+
+        if split == "train":
+            (judgements, []), _ = judgements.split()
+        elif split == "test":
+            _, (judgements, []) = judgements.split()
+        else:
+            raise ValueError(split)
+
+        if self.firstn is not None:
+            if self.firstn > len(judgements):
+                message = 'Requested firstn={} judgements, but only {} exist in {}-{}'
+                message = message.format(self.firstn, len(judgements), self.judgements_type, split)
+                LOGGER.warning(message)
             else:
-                raise ValueError(split)
+                judgements = judgements[:self.firstn]
 
-            if self.firstn is not None:
-                if self.firstn > len(judgements):
-                    message = 'Requested firstn={} judgements, but only {} exist in {}-{}'
-                    message = message.format(self.firstn, len(judgements), self.judgements_type, split)
-                    LOGGER.warning(message)
-                else:
-                    judgements = judgements[:self.firstn]
-
-        judgements_all = pd.concat([judgements_all, judgements], axis=1)
-
-        return judgements_all
+        return judgements
 
     @staticmethod
     def _load_file(fpath: str) -> List[str]:
