@@ -1,34 +1,128 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict, Optional, Set, Any, Union
+from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
+from statistics import mean
+from itertools import repeat
+import logging
+
 import pandas as pd
 from gensim.utils import simple_preprocess
 from tqdm.autonotebook import tqdm
+import sklearn.utils
+
+LOGGER = logging.getLogger(__name__)
 
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
 TEST_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2016/DAseg.newstest2016.%s.%s"
+
+Report = Dict[str, List[float]]
 
 
 class Judgements:
 
     def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
-                 translations: List[str], scores: List[float]):
-        self.src_texts = src_texts
-        self.references = references
-        self.translations = translations
-        self.scores = scores
+                 translations: List[str], scores: List[float], shuffle: bool = True,
+                 shuffle_random_state: int = 42, make_unique: bool = True):
+        assert references is None or len(references) == len(src_texts)
+        assert len(translations) == len(src_texts)
+        assert len(scores) == len(src_texts)
 
-    def get_tokenized_texts(self, stopwords: Optional[Set] = None,
-                            desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
-        if not stopwords:
-            stopwords = set()
-        corpus = zip(self.references, self.translations)
+        if make_unique:
+            new_src_texts, new_references, new_translations, new_scores = [], [] if references else None, [], dict()
+            for row in zip(src_texts, map(tuple, references) if references else repeat(None), translations, scores):
+                src_text, reference, translation, score = row
+                if (src_text, translation) not in new_scores:
+                    new_scores[(src_text, translation)] = []
+                    new_src_texts.append(src_text)
+                    if new_references is not None:
+                        new_references.append(reference)
+                    new_translations.append(translation)
+                new_scores[(src_text, translation)].append(score)
+            if len(new_src_texts) < len(src_texts):
+                num_non_uniques = len(src_texts) - len(new_src_texts)
+                msg = f'Averaged {num_non_uniques} non-unique judgements: {len(src_texts)} -> {len(new_src_texts)}'
+                LOGGER.warning(msg)
+            src_texts, references, translations = new_src_texts, new_references, new_translations
+            scores = [mean(new_scores[(src_text, translation)])
+                      for src_text, translation in zip(src_texts, translations)]
+
+        if shuffle:
+            src_texts, translations, scores = sklearn.utils.shuffle(
+                src_texts, translations, scores, random_state=shuffle_random_state)
+            if references is not None:
+                references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
+
+        self.src_texts = tuple(src_texts)
+        self.references = tuple(map(tuple, references)) if references is not None else None
+        self.translations = tuple(translations)
+        self.scores = tuple(scores)
+
+    def get_tokenized_texts(self, desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
+        sources = [t[0] for t in self.references] if self.references is not None else self.src_texts
+        corpus = zip(sources, self.translations)
         if desc:
             corpus = tqdm(corpus, desc=desc, total=len(self))
-        for reference, translation in corpus:
-            reference_words = [w.lower() for w in simple_preprocess(reference[0]) if w.lower() not in stopwords]
-            translation_words = [w.lower() for w in simple_preprocess(translation) if w.lower() not in stopwords]
-            yield reference_words, translation_words
+        for source, translation in corpus:
+            source_words = list(map(str.lower, simple_preprocess(source)))
+            translation_words = list(map(str.lower, simple_preprocess(translation)))
+            yield source_words, translation_words
+
+    def __getitem__(self, indexes: slice) -> 'Judgements':
+        src_texts = list(self.src_texts[indexes])
+        references = list(self.references[indexes]) if self.references is not None else None
+        translations = list(self.translations[indexes])
+        scores = list(self.scores[indexes])
+        return Judgements(src_texts, references, translations, scores, shuffle=False, make_unique=False)
+
+    def split(self, *other_lists: List, split_ratio: float = 0.8) -> Tuple[Tuple['Judgements', List[List]],
+                                                                           Tuple['Judgements', List[List]]]:
+        for other_list in other_lists:
+            assert len(other_list) == len(self)
+
+        unique_src_texts = sorted(set(self.src_texts))
+        pivot = int(round(len(unique_src_texts) * split_ratio))
+        train_unique_src_texts = set(unique_src_texts[:pivot])
+        test_unique_src_texts = set(unique_src_texts[pivot:])
+
+        train_src_texts, train_references, train_translations, train_scores, train_other_lists = \
+            [], [] if self.references else None, [], [], [[] for other_list in other_lists]
+        test_src_texts, test_references, test_translations, test_scores, test_other_lists = \
+            [], [] if self.references else None, [], [], [[] for other_list in other_lists]
+        for row in zip(self.src_texts, self.references or repeat(None), self.translations, self.scores, *other_lists):
+            src_text, reference, translation, score, *other_elements = row
+            assert src_text in train_unique_src_texts | test_unique_src_texts
+            if src_text in train_unique_src_texts:
+                train_src_texts.append(src_text)
+                if train_references is not None:
+                    train_references.append(list(reference))
+                train_translations.append(translation)
+                train_scores.append(score)
+                for train_other_list, other_element in zip(train_other_lists, other_elements):
+                    train_other_list.append(other_element)
+            else:
+                test_src_texts.append(src_text)
+                if test_references is not None:
+                    test_references.append(list(reference))
+                test_translations.append(translation)
+                test_scores.append(score)
+                for test_other_list, other_element in zip(test_other_lists, other_elements):
+                    test_other_list.append(other_element)
+
+        train_judgements = Judgements(train_src_texts, train_references, train_translations, train_scores,
+                                      shuffle=False, make_unique=False)
+        test_judgements = Judgements(test_src_texts, test_references, test_translations, test_scores,
+                                     shuffle=False, make_unique=False)
+        assert len(train_judgements) + len(test_judgements) == len(self)
+        assert not train_judgements.overlaps(test_judgements)
+
+        return (train_judgements, train_other_lists), (test_judgements, test_other_lists)
+
+    def overlaps(self, other: 'Judgements') -> bool:
+        if self == other:
+            return True
+        self_corpus = set(self.src_texts)
+        other_corpus = set(other.src_texts)
+        return len(self_corpus & other_corpus) > 0
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Judgements):
@@ -40,6 +134,9 @@ class Judgements:
             self.scores == other.scores,
         ])
 
+    def __hash__(self) -> int:
+        return hash((self.src_texts, self.references, self.translations, self.scores))
+
     def __len__(self):
         return len(self.src_texts)
 
@@ -47,19 +144,25 @@ class Judgements:
 class Metric(abc.ABC):
     label: str = 'None'
 
-    def fit(self, train_judgements: Judgements):
+    @staticmethod
+    def supports(lang: str) -> bool:
+        return True
+
+    def fit(self, train_judgements: Judgements) -> None:
         pass
 
     @abc.abstractmethod
     def compute(self, test_judgements: Judgements) -> List[float]:
         pass
 
+    def __repr__(self) -> str:
+        return self.label
+
 
 class ReferenceFreeMetric(Metric):
 
-    @abc.abstractmethod
     def compute_ref_free(self, test_judgements: Judgements) -> List[float]:
-        pass
+        return self.compute(test_judgements)
 
 
 class AugmentedCorpus:
@@ -116,13 +219,10 @@ class Evaluator:
         else:
             raise ValueError(judgements_type)
 
-    def load_judgements(self, split: str = "train",
-                        error_type: str = None,
+    def load_judgements(self, split: str = "train", error_type: Optional[str] = None,
                         first_reference_only: bool = True) -> Judgements:
         if self.judgements_type == "DA":
-            # TODO: note that train and test datasets are the same now
-            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE if split == "train"
-                                               else TEST_DATASET_FILE_TEMPLATE)
+            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
             references = [[ref] for ref in self._load_file(split_file_template % ("reference", self.lang_pair))]
             translations = self._load_file(split_file_template % ("mt-system", self.lang_pair))
@@ -155,8 +255,6 @@ class Evaluator:
                         break  # we want variable translation pairs, but if more is needed, we can remove this
                 else:
                     print("No reference judgements: %s" % i)
-                if self.firstn is not None and len(src_texts) >= self.firstn:
-                    break
 
         elif self.judgements_type == "MQM":
             df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_%s.tsv" % self.lang_pair.replace("-", "")),
@@ -189,8 +287,6 @@ class Evaluator:
                 selected_df = translated_clean_df
             else:
                 selected_df = translated_clean_df[translated_clean_df["category_system"] == error_type]
-            if self.firstn is not None:
-                selected_df = selected_df.iloc[:self.firstn]
 
             src_texts = selected_df["source_system"].tolist()
             references = selected_df["all_references"].tolist()
@@ -202,9 +298,6 @@ class Evaluator:
                              sep="\t", names=["source", "translation", "judgements", "is_critical"])
             df.judgements = df.judgements.apply(lambda j:
                                                 sum(map(int, j.replace("[", "").replace("]", "").split(", "))))
-            if self.firstn is not None:
-                df = df.iloc[:self.firstn]
-
             src_texts = df["source"].tolist()
             references = None
             translations = df["translation"].tolist()
@@ -213,22 +306,42 @@ class Evaluator:
         else:
             raise ValueError(self.judgements_type)
 
-        return Judgements(src_texts, references if not self.reference_free else None, translations, scores)
+        if self.reference_free:
+            references = None
+
+        judgements = Judgements(src_texts, references, translations, scores)
+
+        if split == "train":
+            (judgements, []), _ = judgements.split()
+        elif split == "test":
+            _, (judgements, []) = judgements.split()
+        else:
+            raise ValueError(split)
+
+        if self.firstn is not None:
+            if self.firstn > len(judgements):
+                message = 'Requested firstn={} judgements, but only {} exist in {}-{}'
+                message = message.format(self.firstn, len(judgements), self.judgements_type, split)
+                LOGGER.warning(message)
+            else:
+                judgements = judgements[:self.firstn]
+
+        return judgements
 
     @staticmethod
     def _load_file(fpath: str) -> List[str]:
         with open(fpath) as f:
             return [line.strip() for line in f.readlines()]
 
-    def evaluate(self) -> Dict[str, List[float]]:
+    def evaluate(self) -> Report:
         report = {}
         test_judgements = self.load_judgements("test")
-        report["human"] = test_judgements.scores
+        report["human"] = list(test_judgements.scores)
         if not self.reference_free:
             for metric in self.metrics:
                 report[metric.label] = [float(val) for val in metric.compute(test_judgements)]
         else:
-            for metric in [m for m in self.metrics if issubclass(type(m), ReferenceFreeMetric)]:
+            for metric in [m for m in self.metrics if isinstance(m, ReferenceFreeMetric)]:
                 report[metric.label] = [float(val) for val in metric.compute_ref_free(test_judgements)]
 
         return report

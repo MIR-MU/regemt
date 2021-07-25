@@ -1,17 +1,15 @@
 from collections import defaultdict
-from typing import List
+from typing import List, Any
+from functools import lru_cache
 
 from gensim.models import TfidfModel
-from gensim.models.fasttext import load_facebook_vectors
 from gensim.models.keyedvectors import KeyedVectors, _add_word_to_kv
 from gensim.corpora import Dictionary
-import nltk
-from nltk.corpus import stopwords
 import numpy as np
 from tqdm.autonotebook import tqdm
 
 from common import Metric, ReferenceFreeMetric, Judgements, AugmentedCorpus
-from embedder import ContextualEmbedder
+from embedder import ContextualEmbedder, FastTextEmbedder
 from _wmd import get_wmds, get_wmds_tfidf
 
 
@@ -23,12 +21,13 @@ class ContextualWMD(ReferenceFreeMetric):
         self.embedder = ContextualEmbedder(lang=tgt_lang, reference_free=reference_free)
         self.reference_free = reference_free
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed([t for t in judgements.src_texts])
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(list(judgements.src_texts))
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
-        trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
+        trans_corpus, trans_embs = self.embedder.tokenize_embed(list(judgements.translations))
 
         augmented_reference_corpus = AugmentedCorpus('test-reference', ref_corpus)
         augmented_translation_corpus = AugmentedCorpus('test-translation', trans_corpus)
@@ -39,7 +38,7 @@ class ContextualWMD(ReferenceFreeMetric):
 
         w2v_model = KeyedVectors(self.embedder.vector_size, len(dictionary), dtype=float)
         for augmented_tokens, tokens_embeddings in tqdm(zip(corpus, embeddings),
-                                                        desc=f'{self.label}: construct contextual embeddings',
+                                                        desc=f'{self}: construct contextual embeddings',
                                                         total=len(corpus)):
             for token, token_embedding in zip(augmented_tokens, tokens_embeddings):
                 _add_word_to_kv(w2v_model, None, token, token_embedding, len(dictionary))
@@ -48,8 +47,16 @@ class ContextualWMD(ReferenceFreeMetric):
         out_scores = get_wmds(w2v_model, tqdm(zipped_corpus, desc=self.label))
         return out_scores
 
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements)
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ContextualWMD):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.embedder == other.embedder,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.embedder))
 
 
 class DecontextualizedWMD(ReferenceFreeMetric):
@@ -64,12 +71,13 @@ class DecontextualizedWMD(ReferenceFreeMetric):
         if use_tfidf:
             self.label = self.label + "_tfidf"
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
-            ref_corpus, ref_embs = self.embedder.tokenize_embed([t for t in judgements.src_texts])
+            ref_corpus, ref_embs = self.embedder.tokenize_embed(list(judgements.src_texts))
         else:
             ref_corpus, ref_embs = self.embedder.tokenize_embed([t[0] for t in judgements.references])
-        trans_corpus, trans_embs = self.embedder.tokenize_embed(judgements.translations)
+        trans_corpus, trans_embs = self.embedder.tokenize_embed(list(judgements.translations))
 
         corpus = ref_corpus + trans_corpus
         embeddings = ref_embs + trans_embs
@@ -86,7 +94,7 @@ class DecontextualizedWMD(ReferenceFreeMetric):
 
         w2v_model = KeyedVectors(self.embedder.vector_size, len(decontextualized_embeddings), dtype=float)
         for token, token_embeddings in tqdm(decontextualized_embeddings.items(),
-                                            f'{self.label}: construct decontextualized embeddings'):
+                                            f'{self}: construct decontextualized embeddings'):
             token_embedding = np.mean(token_embeddings, axis=0)
             _add_word_to_kv(w2v_model, None, token, token_embedding, len(decontextualized_embeddings))
 
@@ -98,30 +106,33 @@ class DecontextualizedWMD(ReferenceFreeMetric):
             out_scores = get_wmds(w2v_model, tokenized_texts)
         return out_scores
 
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements)
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, DecontextualizedWMD):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.embedder == other.embedder,
+            self.use_tfidf == other.use_tfidf,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.embedder, self.use_tfidf))
 
 
 class WMD(Metric):
 
     label = "WMD"
-    w2v_model = None
 
     def __init__(self, tgt_lang: str, use_tfidf: bool):
-        if tgt_lang == "en":
-            self.w2v_model = load_facebook_vectors('embeddings/cc.en.300.bin')
-            nltk.download('stopwords')
-            self.stopwords = stopwords.words('english')
-        else:
-            raise ValueError(tgt_lang)
-
+        self.embedder = FastTextEmbedder(tgt_lang)
         self.use_tfidf = use_tfidf
         if use_tfidf:
             self.label = self.label + "_tfidf"
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         ref_corpus, trans_corpus = map(
-            list, zip(*judgements.get_tokenized_texts(self.stopwords, desc=self.label)))
+            list, zip(*judgements.get_tokenized_texts(desc=self.label)))
 
         corpus = ref_corpus + trans_corpus
 
@@ -129,9 +140,19 @@ class WMD(Metric):
             dictionary = Dictionary(corpus)
             tfidf = TfidfModel(dictionary=dictionary, smartirs='nfx')
 
-        tokenized_texts = judgements.get_tokenized_texts(self.stopwords, desc=self.label)
+        tokenized_texts = judgements.get_tokenized_texts(desc=self.label)
         if self.use_tfidf:
-            out_scores = get_wmds_tfidf(self.w2v_model, dictionary, tfidf, tokenized_texts)
+            out_scores = get_wmds_tfidf(self.embedder.keyedvectors, dictionary, tfidf, tokenized_texts)
         else:
-            out_scores = get_wmds(self.w2v_model, tokenized_texts)
+            out_scores = get_wmds(self.embedder.keyedvectors, tokenized_texts)
         return out_scores
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, WMD):
+            return NotImplemented
+        return all([
+            self.use_tfidf == other.use_tfidf,
+        ])
+
+    def __hash__(self) -> int:
+        return hash(self.use_tfidf)

@@ -11,3 +11,4 @@ bert-score
 seaborn
 spacy~=3.1.0
 spacy-transformers~=1.0.3
+scikit_learn~=0.24.2

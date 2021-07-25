@@ -1,4 +1,5 @@
-from typing import Dict, Tuple, List, Callable, Iterable
+from typing import Dict, Tuple, List, Callable, Iterable, Any, Optional
+from functools import lru_cache
 
 import numpy as np
 import spacy
@@ -53,6 +54,10 @@ class TransitionModel:
         return all_tags, transition_matrix_np / max(transition_matrix_np.sum(), 1)
 
     @staticmethod
+    def supports(lang: str) -> bool:
+        return lang in ("no", "en", "de", "zh")
+
+    @staticmethod
     def _init_tagger(lang: str) -> Callable[[str], Iterable[Tuple[str, str]]]:
         if lang == "no":
             model_id = "nb_core_news_lg"
@@ -84,21 +89,29 @@ class TransitionModel:
 class SyntacticCompositionality(ReferenceFreeMetric):
 
     pos_tagger: Callable[[str], Tuple[str, str]]
-    src_lang = None
+    src_lang: Optional[str] = None
     label = "Compositionality"
 
-    def __init__(self, tgt_lang: str, src_lang: str = None, reference_free: bool = False):
+    def __init__(self, tgt_lang: str, src_lang: Optional[str] = None, reference_free: bool = False):
         """
         Compares syntactic compositionality's perplexity on train distribution and outer distribution.
         Syntactic compositionality is a transition matrix of PoS tags
         """
+        assert self.__class__.supports(tgt_lang)
         self.tgt_lang = tgt_lang
+        self.reference_free = reference_free
 
         if reference_free:
+            assert self.__class__.supports(src_lang)
             self.src_lang = src_lang
 
-    def compute(self, judgements: Judgements, ref_free: bool = False) -> List[float]:
-        if ref_free:
+    @staticmethod
+    def supports(lang: str) -> bool:
+        return TransitionModel.supports(lang)
+
+    @lru_cache(maxsize=None)
+    def compute(self, judgements: Judgements) -> List[float]:
+        if self.reference_free:
             base_transitions = [TransitionModel([src_text], self.src_lang) for src_text in judgements.src_texts]
         else:
             base_transitions = [TransitionModel([ref_texts[0]], self.tgt_lang)
@@ -110,5 +123,14 @@ class SyntacticCompositionality(ReferenceFreeMetric):
 
         return distances
 
-    def compute_ref_free(self, judgements: Judgements) -> List[float]:
-        return self.compute(judgements, ref_free=True)
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, SyntacticCompositionality):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.src_lang == other.src_lang,
+            self.tgt_lang == other.tgt_lang,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.src_lang, self.tgt_lang))

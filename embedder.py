@@ -1,17 +1,50 @@
 import shelve
-from typing import List, Tuple, Iterable, Dict
+from typing import List, Tuple, Iterable, Dict, Any
+from urllib.request import urlretrieve
+from pathlib import Path
 
 import torch
 from tqdm.autonotebook import tqdm
-
 import numpy as np
 from bert_score import BERTScorer
 from transformers import BatchEncoding
+from gensim.models.keyedvectors import KeyedVectors
 
 Text = str
 Tokens = List[str]
 Language = str
 Embeddings = np.ndarray
+
+
+class FastTextEmbedder:
+    all_keyedvectors: Dict[Language, KeyedVectors] = dict()
+
+    def __init__(self, lang: str):
+        self.lang = lang
+
+    @property
+    def keyedvectors(self, base_path: Path = Path('embeddings')) -> KeyedVectors:
+        if self.lang not in self.all_keyedvectors:
+            path = base_path / f'cc.{self.lang}.300.vec.gz'
+            if not path.exists():
+                print(f'Downloading fastText embeddings for language {self.lang}')
+                url = f'https://dl.fbaipublicfiles.com/fasttext/vectors-crawl/cc.{self.lang}.300.vec.gz'
+                base_path.mkdir(parents=False, exist_ok=True)
+                urlretrieve(url, path)
+            print(f'Loading fastText embeddings for language {self.lang}')
+            keyedvectors = KeyedVectors.load_word2vec_format(path)
+            self.all_keyedvectors[self.lang] = keyedvectors
+        return self.all_keyedvectors[self.lang]
+
+    def __hash__(self) -> int:
+        return hash(self.lang)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ContextualEmbedder):
+            return NotImplemented
+        return all([
+            self.lang == other.lang,
+        ])
 
 
 class ContextualEmbedder:
@@ -47,6 +80,7 @@ class ContextualEmbedder:
     @property
     def scorer(self) -> BERTScorer:
         if self.lang not in self.scorers:
+            print(f'Loading BERTScorer for language {self.lang}')
             self.scorers[self.lang] = BERTScorer(lang=self.lang)
         return self.scorers[self.lang]
 
@@ -136,3 +170,14 @@ class ContextualEmbedder:
         assert len(texts_tokens) == len(texts)
 
         return texts_tokens, texts_embeddings
+
+    def __hash__(self) -> int:
+        return hash((self.lang, self.vector_size))
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ContextualEmbedder):
+            return NotImplemented
+        return all([
+            self.lang == other.lang,
+            self.vector_size == other.vector_size,
+        ])
