@@ -109,7 +109,7 @@ def main(firstn: Optional[float] = None,
                     title = r"%s, %s%s%s, %s $\rightarrow$ %s" % \
                         (method_names[method], judgements_type, ' (reference-free)' if reference_free else '',
                          f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang)
-                    basename = "heatmap-%s-%s-firstn=%s-reference_free=%s-%s_%s" % \
+                    basename = "heatmap-%s-%s-firstn=%s-reference_free=%s-%s_%s-MULTILING" % \
                         (method, judgements_type, firstn, reference_free, src_lang, tgt_lang)
 
                     correlations = pd.DataFrame(report).applymap(float).corr(method=method).applymap(abs)
