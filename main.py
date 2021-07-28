@@ -30,7 +30,8 @@ def main(firstn: Optional[float] = None,
          tgt_langs: Optional[Set[str]] = None,
          figsize: Tuple[int, int] = (10, 10),
          enable_compositionality: bool = True,
-         fast_mode: bool = False,
+         enable_sota_metrics: bool = True,
+         enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
@@ -64,11 +65,13 @@ def main(firstn: Optional[float] = None,
                     metric = cls(*args, **kwargs)
                     return metric
 
-                metrics += [
-                    # metrics added in new_sota_metrics
-                    make_metric(Comet),
-                    make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                if enable_sota_metrics:
+                    metrics += [
+                        make_metric(Comet),
+                        make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                    ]
 
+                metrics += [
                     make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
                     make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
                 ]
@@ -83,13 +86,15 @@ def main(firstn: Optional[float] = None,
                     make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
                 ]
 
-                if not fast_mode:
+                if enable_fasttext_metrics:
                     metrics += [
                         make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=False),
                         make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=True),
                         make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=False),
                         make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=True),
                     ]
+
+                if enable_sota_metrics:
                     metrics += [
                         make_metric(BLEUrt)
                     ]
@@ -190,7 +195,8 @@ if __name__ == '__main__':
                     'judgements_types': ('MQM',),
                     'src_langs': {'en'},
                     'enable_compositionality': False,
-                    'fast_mode': True,
+                    'enable_sota_metrics': False,
+                    'enable_fasttext_metrics': False,
                 }
             }
         else:
