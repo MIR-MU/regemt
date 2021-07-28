@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Any
 from pathlib import Path
 import tarfile
 from urllib.request import urlretrieve
+from functools import lru_cache
 
 from .prism.prism import Prism
 from .common import ReferenceFreeMetric, Judgements
@@ -28,11 +29,24 @@ class PrismMetric(ReferenceFreeMetric):
             tarfile_path.unlink()
 
         self.model = Prism(f'{model_dir}/m39v1', lang=tgt_lang)
+        self.model_dir = model_dir
         self.reference_free = reference_free
 
+    @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         if self.reference_free:
             return self.model.score(cand=judgements.translations, src=judgements.src_texts, segment_scores=True)
         else:
             return self.model.score(cand=judgements.translations, ref=[rs[0] for rs in judgements.references],
                                     segment_scores=True)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, PrismMetric):
+            return NotImplemented
+        return all([
+            self.reference_free == other.reference_free,
+            self.model_dir == other.model_dir,
+        ])
+
+    def __hash__(self) -> int:
+        return hash((self.reference_free, self.model_dir))
