@@ -3,7 +3,7 @@ from typing import Iterable, List, Tuple, Optional, Any
 from functools import lru_cache
 import warnings
 
-from common import Metric, ReferenceFreeMetric, Judgements
+from .common import Metric, ReferenceFreeMetric, Judgements
 import numpy as np
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler

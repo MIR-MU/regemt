@@ -2,7 +2,7 @@ from typing import List
 
 from comet.models import download_model
 
-from common import Judgements, Metric
+from .common import Judgements, Metric
 
 
 class Comet(Metric):

@@ -5,7 +5,7 @@ import hashlib
 import logging
 import os
 import sys
-from typing import List, Dict, Iterator, Any, Tuple
+from typing import Dict, Iterator, Any
 
 import numpy as np
 import sentencepiece as spm
@@ -116,8 +116,8 @@ class Prism:
         return self._binarize(sent)
 
     def _build_batches(self,
-                       source_tokens: List[List[int]],
-                       target_tokens: List[List[int]],
+                       source_tokens,
+                       target_tokens,
                        skip_invalid_size_inputs: bool) -> Iterator[Dict[str, Any]]:
         source_lengths = torch.LongTensor([t.numel() for t in source_tokens])
         target_lengths = torch.LongTensor([t.numel() for t in target_tokens])
@@ -163,8 +163,8 @@ class Prism:
                 sent_in_str = ' '.join([self.task.source_dictionary[x] for x in sent_in])
                 logger.debug(f'Input[{ii}] = ' + sent_in_str)
                 sent_out_tok = [self.task.source_dictionary[x] for x in sent_out]
-                logger.debug(f'Output[{ii}] = ' + \
-                             f' '.join([f'{a}[{b:.02f}]' for a, b in zip(sent_out_tok, scores_out)]))
+                logger.debug(f'Output[{ii}] = ' +
+                             ' '.join([f'{a}[{b:.02f}]' for a, b in zip(sent_out_tok, scores_out)]))
 
         if None in results:
             raise Exception('Missing one or more sentence scores')
@@ -202,7 +202,7 @@ class Prism:
         return scores
 
 
-def parse_sacrebleu_uri(uri: str) -> Tuple[str]:
+def parse_sacrebleu_uri(uri: str):
     """
     Parses the test set and language pair from a URI of the form
 
@@ -314,10 +314,10 @@ def main():
 class SequenceScorer(object):
     """
     Copy of https://github.com/pytorch/fairseq/blob/master/fairseq/sequence_scorer.py
-    with softmax temperature control added 
+    with softmax temperature control added
 
     MIT License
-    
+
     Copyright (c) Facebook, Inc. and its affiliates.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -326,10 +326,10 @@ class SequenceScorer(object):
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -420,6 +420,9 @@ class SequenceScorer(object):
                     avg_attn = attn
                 else:
                     avg_attn.add_(attn)
+
+        assert avg_probs is not None
+
         if len(models) > 1:
             avg_probs.div_(len(models))
             avg_probs.log_()
@@ -433,6 +436,7 @@ class SequenceScorer(object):
             # remove padding from ref
             ref = utils.strip_pad(sample['target'][i, start_idxs[i]:], self.pad) \
                 if sample['target'] is not None else None
+            assert ref is not None
             tgt_len = ref.numel()
             avg_probs_i = avg_probs[i][start_idxs[i]:start_idxs[i] + tgt_len]
             score_i = avg_probs_i.sum() / tgt_len

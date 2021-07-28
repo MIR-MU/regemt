@@ -1,7 +1,10 @@
 from typing import List
+from pathlib import Path
+import tarfile
+from urllib.request import urlretrieve
 
-from prism.prism import Prism
-from common import ReferenceFreeMetric, Judgements
+from .prism.prism import Prism
+from .common import ReferenceFreeMetric, Judgements
 
 
 class PrismMetric(ReferenceFreeMetric):
@@ -10,28 +13,21 @@ class PrismMetric(ReferenceFreeMetric):
 
     label = "Prism"
 
-    def __init__(self, tgt_lang: str, reference_free=False, model_dir="prism/model_dir/m39v1"):
-        try:
-            self.model = Prism(model_dir, lang=tgt_lang)
-        except OSError:
-            from io import BytesIO
-            from zipfile import ZipFile
-            from urllib.request import urlopen
-            # or: requests.get(url).content
+    def __init__(self, tgt_lang: str, reference_free=False, model_dir="prism/model_dir"):
+        model_path = Path(model_dir)
 
-            # resp = urlopen("http://www.test.com/file.zip")
-            # zipfile = ZipFile(BytesIO(resp.read()))
-            # for line in zipfile.open(file).readlines():
-            #     print(line.decode('utf-8'))
+        if not model_path.exists():
+            model_path.mkdir(parents=True, exist_ok=True)
+            tarfile_path = model_path / 'm39v1.tar'
+            print(f'Downloading Prism model to {tarfile_path}')
+            url = 'http://data.statmt.org/prism/m39v1.tar'
+            urlretrieve(url, tarfile_path)
+            print(f'Extracting Prism model to {model_path}')
+            with tarfile.open(tarfile_path, 'r') as tar:
+                tar.extractall(path=model_path)
+            tarfile_path.unlink()
 
-            print("Prism missing model: run:\n"
-                  "mkdir -p prism/model_dir\n"
-                  "cd prism/model_dir\n"
-                  "wget http://data.statmt.org/prism/m39v1.tar\n"
-                  "tar xf m39v1.tar\n"
-                  "and pass model_dir=%s" % model_dir)
-            raise
-
+        self.model = Prism(f'{model_dir}/m39v1', lang=tgt_lang)
         self.reference_free = reference_free
 
     def compute(self, judgements: Judgements) -> List[float]:

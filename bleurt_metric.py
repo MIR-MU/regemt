@@ -1,6 +1,6 @@
 from typing import List
 
-from common import Judgements, Metric
+from .common import Judgements, Metric
 
 
 class BLEUrt(Metric):

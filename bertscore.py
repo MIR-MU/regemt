@@ -4,7 +4,7 @@ from functools import lru_cache
 from bert_score import BERTScorer
 from tqdm.autonotebook import tqdm
 
-from common import ReferenceFreeMetric, Judgements
+from .common import ReferenceFreeMetric, Judgements
 
 
 class BERTScore(ReferenceFreeMetric):

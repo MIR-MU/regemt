@@ -5,7 +5,7 @@ import numpy as np
 import spacy
 from tqdm.autonotebook import tqdm
 
-from common import Judgements, ReferenceFreeMetric
+from .common import Judgements, ReferenceFreeMetric
 
 taggers: Dict[str, Callable[[str], Iterable[Tuple[str, str]]]] = {}
 

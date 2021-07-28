@@ -8,27 +8,24 @@
 Translate pre-processed data with a trained model.
 """
 
+from collections import defaultdict
+
 import torch
 
 from fairseq import bleu, checkpoint_utils, options, progress_bar, tasks, utils
 from fairseq.meters import StopwatchMeter, TimeMeter
-
-from collections import defaultdict
-
-import torch
-from fairseq import utils
 from fairseq.models import FairseqEncoder, FairseqDecoder, FairseqEncoderDecoderModel
 
 
-###################################################################
-##  PRISM PARAPHRASER GENERATION CODE
-##
-##  Here we build a fairseq model that gets ensembled with the regular multilngual NMT model
-##  The new model simply downweights any vocabulary item that begins a new word that
-##     matches an n-gram in the input (case is ignored).
-##
-##  See https://arxiv.org/abs/2008.04935 for more details on the generation modification
-##  See https://arxiv.org/abs/2004.14564 for information about the model we use
+##################################################################
+#  PRISM PARAPHRASER GENERATION CODE
+#
+#  Here we build a fairseq model that gets ensembled with the regular multilngual NMT model
+#  The new model simply downweights any vocabulary item that begins a new word that
+#     matches an n-gram in the input (case is ignored).
+#
+#  See https://arxiv.org/abs/2008.04935 for more details on the generation modification
+#  See https://arxiv.org/abs/2004.14564 for information about the model we use
 
 
 def make_subword_penalties(line):
@@ -52,8 +49,6 @@ def make_word_penalties(line, vocab, mapx):
     prefix: subwords that make up a n-gram (n=1,2,3,4) of FULL WORDS
     penalize: the next subword
     """
-    from time import time
-    t0 = time()
 
     penalties = defaultdict(list)
     uline = '▁'
@@ -74,7 +69,6 @@ def make_word_penalties(line, vocab, mapx):
     for prefix_len in (0, 1, 2, 3):
         for ii in range(len(line2) - prefix_len):
             prefix = line2[ii:ii + prefix_len]
-            next_word = uline + line2[ii + prefix_len][0]  # just penalize starting a word, not continuing it
 
             whole_next_word = uline + ''.join(line2[ii + prefix_len])
 
@@ -152,7 +146,6 @@ class NgramDownweightEncoder(FairseqEncoder):
 
         # Return the Encoder's output. This can be any object and will be
         # passed directly to the Decoder.
-        batch_size = src_tokens.shape[0]
         debug_out = self.dictionary.string(src_tokens,
                                            bpe_symbol=None, escape_unk=False)
 
@@ -265,7 +258,7 @@ class NgramDownweightModel(FairseqEncoderDecoderModel):
     def get_normalized_probs(self, decoder_out, log_probs):
         return decoder_out[0]
 
-    ############  /NEW
+    #  /NEW
 
 
 ###################################################################
@@ -285,7 +278,7 @@ def main(args):
 
     try:
         print(args.print_step)
-    except Exception as e:
+    except Exception:
         args.print_step = False  # why do I need this???
 
     use_cuda = torch.cuda.is_available() and not args.cpu
@@ -333,7 +326,7 @@ def main(args):
     for x in max_positions:
         try:
             fixed_max_positions.append((x[0], x[1]))
-        except:
+        except:  # noqa: E722
             fixed_max_positions.append((12345677, x))
 
     # Load dataset (possibly sharded)
