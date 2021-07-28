@@ -19,10 +19,10 @@ class PrismMetric(ReferenceFreeMetric):
             from urllib.request import urlopen
             # or: requests.get(url).content
 
-            resp = urlopen("http://www.test.com/file.zip")
-            zipfile = ZipFile(BytesIO(resp.read()))
-            for line in zipfile.open(file).readlines():
-                print(line.decode('utf-8'))
+            # resp = urlopen("http://www.test.com/file.zip")
+            # zipfile = ZipFile(BytesIO(resp.read()))
+            # for line in zipfile.open(file).readlines():
+            #     print(line.decode('utf-8'))
 
             print("Prism missing model: run:\n"
                   "mkdir -p prism/model_dir\n"

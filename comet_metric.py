@@ -2,10 +2,10 @@ from typing import List
 
 from comet.models import download_model
 
-from common import ReferenceFreeMetric, Judgements
+from common import Judgements, Metric
 
 
-class Comet(ReferenceFreeMetric):
+class Comet(Metric):
     # https://unbabel.github.io/COMET/html/running.html
     # https://aclanthology.org/2020.emnlp-main.213.pdf#page=5
 

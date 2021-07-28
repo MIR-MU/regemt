@@ -13,7 +13,7 @@ class BLEUrt(Metric):
         try:
             from bleurt import score
             self.scorer = score.BleurtScorer(model_dir)
-        except OSError:
+        except AssertionError:
             print("Bleurt missing model: run:\n"
                   "mkdir -p bleurt/model_dir\n"
                   "cd bleurt/model_dir\n"
