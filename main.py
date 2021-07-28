@@ -111,6 +111,7 @@ def main(firstn: Optional[float] = None,
                     method_names = {
                         'pearson': "Pearson's $r$",
                         'spearman': r"Spearman's $\rho$",
+                        'kendall': r"Kendall's $\tau$",
                     }
                     title = r"%s, %s%s%s, %s $\rightarrow$ %s" % \
                         (method_names[method], judgements_type, ' (reference-free)' if reference_free else '',
@@ -131,6 +132,7 @@ def main(firstn: Optional[float] = None,
 
                 plot_correlations(report, 'pearson')
                 plot_correlations(report, 'spearman')
+                plot_correlations(report, 'kendall')
 
                 def plot_metric(metric: Regression, max_len: int = 1000, dpi: int = 300) -> None:
                     if metric.model is None:
