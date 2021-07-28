@@ -10,9 +10,12 @@ import transformers
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from bertscore import BERTScore
+from bleurt_metric import BLEUrt
+from comet_metric import Comet
 from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
+from prism_metric import PrismMetric
 from scm import SCM, ContextualSCM, DecontextualizedSCM
 from wmd import WMD, ContextualWMD, DecontextualizedWMD
 from ensemble import Regression
@@ -27,7 +30,7 @@ def main(firstn: Optional[float] = None,
          tgt_langs: Optional[Set[str]] = None,
          figsize: Tuple[int, int] = (10, 10),
          enable_compositionality: bool = True,
-         enable_fasttext_metrics: bool = True,
+         fast_mode: bool = False,
          enable_contextual_scm: bool = False):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
@@ -62,6 +65,10 @@ def main(firstn: Optional[float] = None,
                     return metric
 
                 metrics += [
+                    # metrics added in new_sota_metrics
+                    make_metric(Comet),
+                    make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+
                     make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
                     make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
                 ]
@@ -76,12 +83,15 @@ def main(firstn: Optional[float] = None,
                     make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
                 ]
 
-                if enable_fasttext_metrics:
+                if not fast_mode:
                     metrics += [
                         make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=False),
                         make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=True),
                         make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=False),
                         make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=True),
+                    ]
+                    metrics += [
+                        make_metric(BLEUrt)
                     ]
 
                 metrics += [
@@ -180,7 +190,7 @@ if __name__ == '__main__':
                     'judgements_types': ('MQM',),
                     'src_langs': {'en'},
                     'enable_compositionality': False,
-                    'enable_fasttext_metrics': False,
+                    'fast_mode': True,
                 }
             }
         else:
