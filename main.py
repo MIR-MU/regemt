@@ -23,7 +23,7 @@ LOGGER = logging.getLogger(__name__)
 
 def main(firstn: Optional[int] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('DA', 'MQM', 'catastrophic'),
+         judgements_types: Tuple[str, ...] = ('MQM', ),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
          figsize: Tuple[int, int] = (10, 10),
@@ -199,7 +199,6 @@ if __name__ == '__main__':
                 **parameters,
                 **{
                     'firstn': 100,
-                    'judgements_types': ('MQM',),
                     'src_langs': {'en'},
                     'enable_compositionality': False,
                     'enable_sota_metrics': False,
