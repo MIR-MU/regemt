@@ -12,8 +12,10 @@ class Comet(Metric):
 
     label = "Comet"
 
-    def __init__(self):
-        self.model = download_model("wmt-large-da-estimator-1719", "comet_model/")
+    def __init__(self, model_name: str = 'wmt-large-da-estimator-1719'):
+        self.model_name = model_name
+        print(f'{self}: Initializing {model_name}')
+        self.model = download_model(model_name, "comet_model/")
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
@@ -26,7 +28,9 @@ class Comet(Metric):
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Comet):
             return NotImplemented
-        return True
+        return all([
+            self.model_name == other.model_name,
+        ])
 
     def __hash__(self) -> int:
-        return hash(True)
+        return hash(self.model_name)

@@ -28,6 +28,7 @@ class BLEUrt(Metric):
                 zf.extractall(path=model_path)
             zipfile_path.unlink()
 
+        print(f'{self}: Initializing {model_dir}/bleurt-base-128')
         self.scorer = score.BleurtScorer(f'{model_dir}/bleurt-base-128')
         self.model_dir = model_dir
 

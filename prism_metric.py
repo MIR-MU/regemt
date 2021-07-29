@@ -28,6 +28,7 @@ class PrismMetric(ReferenceFreeMetric):
                 tar.extractall(path=model_path)
             tarfile_path.unlink()
 
+        print(f'{self}: Initializing {model_dir}/m39v1')
         self.model = Prism(f'{model_dir}/m39v1', lang=tgt_lang)
         self.model_dir = model_dir
         self.reference_free = reference_free

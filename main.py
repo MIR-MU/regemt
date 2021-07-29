@@ -3,6 +3,7 @@ from itertools import product
 import logging
 from typing import Tuple, Set, Optional, List
 import sys
+import warnings
 
 import pandas as pd
 import seaborn as sns
@@ -181,8 +182,14 @@ def main(firstn: Optional[float] = None,
 
 
 if __name__ == '__main__':
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ['TOKENIZERS_PARALLELISM'] = "false"
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     transformers.logging.set_verbosity_error()
+    try:
+        import tensorflow as tf
+        tf.get_logger().setLevel('ERROR')
+    except ImportError:
+        pass
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
     parameters = dict()
@@ -202,4 +209,6 @@ if __name__ == '__main__':
         else:
             raise ValueError(f'Unrecognized command-line argument: {arg}')
 
-    main(**parameters)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
+        main(**parameters)
