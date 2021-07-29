@@ -22,11 +22,16 @@ class Comet(Metric):
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
-        data = {"src": judgements.src_texts,
-                "mt": judgements.translations,
-                "ref": [rs[0] for rs in judgements.references]}
-        data = [dict(zip(data, t)) for t in zip(*data.values())]
-        return self.model.predict(data, cuda=True, show_progress=True)
+        data = [
+            {
+                "src": src_text,
+                "mt": translation,
+                "ref": rs[0]
+            }
+            for src_text, translation, rs
+            in zip(judgements.src_texts, judgements.translations, judgements.references)
+        ]
+        return self.model.predict(data, cuda=True, show_progress=True)[1]
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Comet):
