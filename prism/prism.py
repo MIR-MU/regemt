@@ -10,6 +10,7 @@ from typing import Dict, Iterator, Any
 import numpy as np
 import sentencepiece as spm
 import torch
+from tqdm.autonotebook import tqdm
 from fairseq import checkpoint_utils, utils
 from fairseq.data import LanguagePairDataset
 from sacrebleu import get_source_file, get_reference_files, DATASETS, get_langpairs_for_testset
@@ -137,7 +138,8 @@ class Prism:
         assert len(tok_sents_in) == len(tok_sents_out)
         tok_level_scores = [None, ] * len(tok_sents_in)  # for debug
         results = [None, ] * len(tok_sents_in)
-        for batch in self._build_batches(tok_sents_in, tok_sents_out, skip_invalid_size_inputs=False):
+        batches = tqdm(self._build_batches(tok_sents_in, tok_sents_out, skip_invalid_size_inputs=False), desc='Prism')
+        for batch in batches:
             if self.use_cuda:  # must be a better way
                 batch['id'] = batch['id'].cuda()
                 batch['net_input']['src_tokens'] = batch['net_input']['src_tokens'].cuda()
