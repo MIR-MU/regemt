@@ -21,7 +21,7 @@ from ensemble import Regression
 LOGGER = logging.getLogger(__name__)
 
 
-def main(firstn: Optional[float] = None,
+def main(firstn: Optional[int] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = ('DA', 'MQM', 'catastrophic'),
          src_langs: Optional[Set[str]] = None,
