@@ -230,7 +230,7 @@ class Regression(ReferenceFreeMetric):
         assert (len(test_X), len(test_y)) == (len(test_judgements), len(test_judgements))
 
         models, best_model, best_r2 = self._get_models(), None, float('-inf')
-        with parallel_backend('multiprocessing', n_jobs=-1), warnings.catch_warnings():
+        with parallel_backend('multiprocessing', n_jobs=32), warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=ConvergenceWarning)
             for model in models:
                 model.fit(train_X, train_y)
