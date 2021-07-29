@@ -1,5 +1,7 @@
 from typing import List, Any
 from functools import lru_cache
+from contextlib import redirect_stdout, redirect_stderr
+import os
 
 from comet.models import download_model
 
@@ -15,7 +17,8 @@ class Comet(Metric):
     def __init__(self, model_name: str = 'wmt-large-da-estimator-1719'):
         self.model_name = model_name
         print(f'{self}: Initializing {model_name}')
-        self.model = download_model(model_name, "comet_model/")
+        with open(os.devnull, 'w') as f, redirect_stdout(f), redirect_stderr(f):
+            self.model = download_model(model_name, "comet_model/")
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
