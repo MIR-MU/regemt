@@ -46,7 +46,7 @@ def hash_model(model_dir):
 
 
 class Prism:
-    def __init__(self, model_dir, lang, temperature=1.0):
+    def __init__(self, model_dir, lang, device=None, temperature=1.0):
         '''
         model_dir should contain:
          1) checkpoint.pt: the fairseq model
@@ -72,11 +72,16 @@ class Prism:
 
         self.use_cuda = torch.cuda.is_available()
 
+        if device is None:
+            self.device = "cuda" if self.use_cuda else "cpu"
+        else:
+            self.device = device
+
         self.generator = SequenceScorer(self.task.target_dictionary, temperature=temperature)
 
         for model in self.models:
             if self.use_cuda:
-                model.cuda()
+                model.to(self.device)
             model.make_generation_fast_(
                 beamable_mm_beam_size=None,
                 need_attn=False,
@@ -141,11 +146,11 @@ class Prism:
         batches = tqdm(self._build_batches(tok_sents_in, tok_sents_out, skip_invalid_size_inputs=False), desc='Prism')
         for batch in batches:
             if self.use_cuda:  # must be a better way
-                batch['id'] = batch['id'].cuda()
-                batch['net_input']['src_tokens'] = batch['net_input']['src_tokens'].cuda()
-                batch['net_input']['src_lengths'] = batch['net_input']['src_lengths'].cuda()
-                batch['net_input']['prev_output_tokens'] = batch['net_input']['prev_output_tokens'].cuda()
-                batch['target'] = batch['target'].cuda()
+                batch['id'] = batch['id'].to(self.device)
+                batch['net_input']['src_tokens'] = batch['net_input']['src_tokens'].to(self.device)
+                batch['net_input']['src_lengths'] = batch['net_input']['src_lengths'].to(self.device)
+                batch['net_input']['prev_output_tokens'] = batch['net_input']['prev_output_tokens'].to(self.device)
+                batch['target'] = batch['target'].to(self.device)
 
             translations = self.task.inference_step(self.generator, self.models, batch)
 

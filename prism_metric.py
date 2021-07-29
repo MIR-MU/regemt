@@ -14,7 +14,7 @@ class PrismMetric(ReferenceFreeMetric):
 
     label = "Prism"
 
-    def __init__(self, tgt_lang: str, reference_free=False, model_dir="prism/model_dir"):
+    def __init__(self, tgt_lang: str, reference_free=False, model_dir="prism/model_dir", device="cuda:1"):
         model_path = Path(model_dir)
 
         if not model_path.exists():
@@ -29,7 +29,7 @@ class PrismMetric(ReferenceFreeMetric):
             tarfile_path.unlink()
 
         print(f'{self}: Initializing {model_dir}/m39v1')
-        self.model = Prism(f'{model_dir}/m39v1', lang=tgt_lang)
+        self.model = Prism(f'{model_dir}/m39v1', lang=tgt_lang, device=device)
         self.model_dir = model_dir
         self.reference_free = reference_free
 
