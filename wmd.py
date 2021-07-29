@@ -8,9 +8,9 @@ from gensim.corpora import Dictionary
 import numpy as np
 from tqdm.autonotebook import tqdm
 
-from .common import Metric, ReferenceFreeMetric, Judgements, AugmentedCorpus
-from .embedder import ContextualEmbedder, FastTextEmbedder
-from ._wmd import get_wmds, get_wmds_tfidf
+from common import Metric, ReferenceFreeMetric, Judgements, AugmentedCorpus
+from embedder import ContextualEmbedder, FastTextEmbedder
+from _wmd import get_wmds, get_wmds_tfidf
 
 
 class ContextualWMD(ReferenceFreeMetric):

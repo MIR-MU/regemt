@@ -12,8 +12,8 @@ import numpy as np
 from tqdm.autonotebook import tqdm
 from scipy.sparse import dok_matrix, csr_matrix
 
-from .common import ReferenceFreeMetric, Metric, Judgements, AugmentedCorpus
-from .embedder import ContextualEmbedder, FastTextEmbedder
+from common import ReferenceFreeMetric, Metric, Judgements, AugmentedCorpus
+from embedder import ContextualEmbedder, FastTextEmbedder
 
 
 class ContextualSCM(ReferenceFreeMetric):

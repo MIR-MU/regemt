@@ -4,8 +4,8 @@ import tarfile
 from urllib.request import urlretrieve
 from functools import lru_cache
 
-from .prism.prism import Prism
-from .common import ReferenceFreeMetric, Judgements
+from prism.prism import Prism
+from common import ReferenceFreeMetric, Judgements
 
 
 class PrismMetric(ReferenceFreeMetric):

@@ -3,7 +3,7 @@ from functools import lru_cache
 
 from tqdm.autonotebook import tqdm
 import nltk
-from .common import Metric, Judgements
+from common import Metric, Judgements
 from sacrebleu import corpus_bleu
 from nltk.translate.meteor_score import meteor_score
 

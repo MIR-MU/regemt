@@ -9,16 +9,16 @@ import seaborn as sns
 import transformers
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from .bertscore import BERTScore
-from .bleurt_metric import BLEUrt
-from .comet_metric import Comet
-from .common import Evaluator, Report
-from .conventional_metrics import BLEU, METEOR
-from .ood_metrics import SyntacticCompositionality
-from .prism_metric import PrismMetric
-from .scm import SCM, ContextualSCM, DecontextualizedSCM
-from .wmd import WMD, ContextualWMD, DecontextualizedWMD
-from .ensemble import Regression
+from bertscore import BERTScore
+from bleurt_metric import BLEUrt
+from comet_metric import Comet
+from common import Evaluator, Report
+from conventional_metrics import BLEU, METEOR
+from ood_metrics import SyntacticCompositionality
+from prism_metric import PrismMetric
+from scm import SCM, ContextualSCM, DecontextualizedSCM
+from wmd import WMD, ContextualWMD, DecontextualizedWMD
+from ensemble import Regression
 
 LOGGER = logging.getLogger(__name__)
 

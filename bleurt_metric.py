@@ -4,7 +4,7 @@ import zipfile
 from urllib.request import urlretrieve
 from functools import lru_cache
 
-from .common import Judgements, Metric
+from common import Judgements, Metric
 from bleurt import score
 
 
