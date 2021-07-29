@@ -61,6 +61,10 @@ class Regression(ReferenceFreeMetric):
                 results = metric.compute_ref_free(judgements)
             else:
                 results = metric.compute(judgements)
+            if len(results) != len(judgements):
+                message = f'{metric}{".compute_ref_free()" if self.reference_free else ".compute()"}'
+                message += f' returned {len(results)} results, {len(judgements)} expected'
+                raise ValueError(message)
             metric_features_transposed.append(results)
         metric_features = list(zip(*metric_features_transposed))
         return metric_features
