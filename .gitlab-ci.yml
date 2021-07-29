@@ -14,8 +14,7 @@ Style check:
   before_script:
     - python -V
     - pip install -U pip
-    - pip install -r requirements.txt
-    - pip install numpy~=1.21
+    - pip install -r requirements_fast.txt
     - pip install flake8
   script:
     - flake8
@@ -27,8 +26,7 @@ Type check:
   before_script:
     - python -V
     - pip install -U pip
-    - pip install -r requirements.txt
-    - pip install numpy~=1.21
+    - pip install -r requirements_fast.txt
     - pip install pytype
   script:
     - pytype .
@@ -40,8 +38,7 @@ Unit tests:
   before_script:
     - python -V
     - pip install -U pip
-    - pip install -r requirements.txt
-    - pip install numpy~=1.21
+    - pip install -r requirements_fast.txt
   script:
     - python -m main --fast
   artifacts:

@@ -10,12 +10,9 @@ import transformers
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from bertscore import BERTScore
-from bleurt_metric import BLEUrt
-from comet_metric import Comet
 from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
-from prism_metric import PrismMetric
 from scm import SCM, ContextualSCM, DecontextualizedSCM
 from wmd import WMD, ContextualWMD, DecontextualizedWMD
 from ensemble import Regression
@@ -66,6 +63,8 @@ def main(firstn: Optional[float] = None,
                     return metric
 
                 if enable_sota_metrics:
+                    from prism_metric import PrismMetric
+                    from comet_metric import Comet
                     metrics += [
                         make_metric(Comet),
                         make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
@@ -95,6 +94,7 @@ def main(firstn: Optional[float] = None,
                     ]
 
                 if enable_sota_metrics:
+                    from bleurt_metric import BLEUrt
                     metrics += [
                         make_metric(BLEUrt)
                     ]
