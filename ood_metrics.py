@@ -1,5 +1,7 @@
 from typing import Dict, Tuple, List, Callable, Iterable, Any, Optional
 from functools import lru_cache
+from contextlib import redirect_stdout, redirect_stderr
+import os
 
 import numpy as np
 import spacy
@@ -71,13 +73,14 @@ class TransitionModel:
         else:
             raise ValueError("Language '%s' has no defined tagger" % lang)
 
-        try:
-            spacy_tagger = spacy.load(model_id)
-        except OSError:
-            # tagger not-yet downloaded
-            # spacy.cli.download(model_id, False, "-q")
-            spacy.cli.download(model_id)
-            spacy_tagger = spacy.load(model_id)
+        with open(os.devnull, 'w') as f, redirect_stdout(f), redirect_stderr(f):
+            try:
+                spacy_tagger = spacy.load(model_id)
+            except OSError:
+                # tagger not-yet downloaded
+                # spacy.cli.download(model_id, False, "-q")
+                spacy.cli.download(model_id)
+                spacy_tagger = spacy.load(model_id)
 
         def _spacy_pos_tagger_wrapper(text: str) -> Iterable[Tuple[str, str]]:
             tokens_tagged = spacy_tagger(text)
