@@ -1,0 +1,14 @@
+annoy~=1.17.0
+bert-score~=0.3.9
+gensim~=4.0.1
+levenshtein~=0.12.0
+nltk~=3.5
+pandas~=1.2.4
+pyemd~=0.5.1
+sacrebleu~=1.5.1
+scikit_learn~=0.24.2
+scipy~=1.5.4
+seaborn~=0.11.1
+spacy-transformers~=1.0.3
+spacy~=3.1.0
+tqdm~=4.59.0

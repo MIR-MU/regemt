@@ -3,6 +3,7 @@ from itertools import product
 import logging
 from typing import Tuple, Set, Optional, List
 import sys
+import warnings
 
 import pandas as pd
 import seaborn as sns
@@ -20,13 +21,14 @@ from ensemble import Regression
 LOGGER = logging.getLogger(__name__)
 
 
-def main(firstn: Optional[float] = None,
+def main(firstn: Optional[int] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('DA', 'MQM', 'catastrophic'),
+         judgements_types: Tuple[str, ...] = ('MQM', ),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
          figsize: Tuple[int, int] = (10, 10),
          enable_compositionality: bool = True,
+         enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False):
     for reference_free in reference_frees:
@@ -61,6 +63,14 @@ def main(firstn: Optional[float] = None,
                     metric = cls(*args, **kwargs)
                     return metric
 
+                if enable_sota_metrics:
+                    from prism_metric import PrismMetric
+                    from comet_metric import Comet
+                    metrics += [
+                        make_metric(Comet),
+                        make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                    ]
+
                 metrics += [
                     make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
                     make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
@@ -82,6 +92,12 @@ def main(firstn: Optional[float] = None,
                         make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=True),
                         make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=False),
                         make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=True),
+                    ]
+
+                if enable_sota_metrics:
+                    from bleurt_metric import BLEUrt
+                    metrics += [
+                        make_metric(BLEUrt)
                     ]
 
                 metrics += [
@@ -110,6 +126,7 @@ def main(firstn: Optional[float] = None,
                     method_names = {
                         'pearson': "Pearson's $r$",
                         'spearman': r"Spearman's $\rho$",
+                        'kendall': r"Kendall's $\tau$",
                     }
                     title = r"%s, %s%s%s, %s $\rightarrow$ %s" % \
                         (method_names[method], judgements_type, ' (reference-free)' if reference_free else '',
@@ -130,6 +147,7 @@ def main(firstn: Optional[float] = None,
 
                 plot_correlations(report, 'pearson')
                 plot_correlations(report, 'spearman')
+                plot_correlations(report, 'kendall')
 
                 def plot_metric(metric: Regression, max_len: int = 1000, dpi: int = 300) -> None:
                     if metric.model is None:
@@ -163,8 +181,14 @@ def main(firstn: Optional[float] = None,
 
 
 if __name__ == '__main__':
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ['TOKENIZERS_PARALLELISM'] = "false"
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
     transformers.logging.set_verbosity_error()
+    try:
+        import tensorflow as tf
+        tf.get_logger().setLevel('ERROR')
+    except ImportError:
+        pass
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
     parameters = dict()
@@ -174,13 +198,15 @@ if __name__ == '__main__':
                 **parameters,
                 **{
                     'firstn': 100,
-                    'judgements_types': ('MQM',),
                     'src_langs': {'en'},
                     'enable_compositionality': False,
+                    'enable_sota_metrics': False,
                     'enable_fasttext_metrics': False,
                 }
             }
         else:
             raise ValueError(f'Unrecognized command-line argument: {arg}')
 
-    main(**parameters)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
+        main(**parameters)
