@@ -175,7 +175,7 @@ def main(firstn: Optional[int] = None,
 
                     plot_correlations('pearson')
                     correlations = plot_correlations('spearman')
-                    np.fill_diagonal(correlations, -np.inf)
+                    np.fill_diagonal(correlations.values, -np.inf)
 
                     if ablation_study:
                         ablation_study_result = float(correlations['human'][regression.label])
