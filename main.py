@@ -3,7 +3,6 @@ from itertools import product
 import logging
 from typing import Tuple, Set, Optional, List
 import sys
-import warnings
 
 import pandas as pd
 import seaborn as sns
@@ -21,12 +20,11 @@ from ensemble import Regression
 LOGGER = logging.getLogger(__name__)
 
 
-def main(firstn: Optional[int] = None,
+def main(firstn: Optional[float] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('MQM', ),
+         judgements_types: Tuple[str, ...] = ('challengeset', 'florestest', 'newstest', 'tedtalks'),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
-         figsize: Tuple[int, int] = (10, 10),
          enable_compositionality: bool = True,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
@@ -37,9 +35,8 @@ def main(firstn: Optional[int] = None,
             if judgements_type == 'catastrophic' and not reference_free:
                 continue
 
-            print("Evaluating %s judgements" % judgements_type)
+            print("Generating WMT21 submission")
 
-            reports: List[Report] = []
             langs = Evaluator.langs_for_judgements(judgements_type)
 
             for lang_pair in langs:
@@ -118,65 +115,9 @@ def main(firstn: Optional[int] = None,
                 metrics = list(filter(lambda metric: metric is not None, metrics))
 
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
-                                      judgements_type=judgements_type,
+                                      judgements_type="WMT_test",
                                       reference_free=reference_free, firstn=firstn)
-                report = evaluator.evaluate()
-                reports.append(report)
-
-                def plot_correlations(report: Report, method: str, dpi: int = 300) -> None:
-                    method_names = {
-                        'pearson': "Pearson's $r$",
-                        'spearman': r"Spearman's $\rho$",
-                        'kendall': r"Kendall's $\tau$",
-                    }
-                    title = r"%s, %s%s%s, %s $\rightarrow$ %s" % \
-                        (method_names[method], judgements_type, ' (reference-free)' if reference_free else '',
-                         f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang)
-                    basename = "heatmap-%s-%s-firstn=%s-reference_free=%s-%s_%s" % \
-                        (method, judgements_type, firstn, reference_free, src_lang, tgt_lang)
-
-                    correlations = pd.DataFrame(report).applymap(float).corr(method=method).applymap(abs)
-
-                    fig, ax = plt.subplots(figsize=figsize)
-                    sns.heatmap(correlations, annot=True, ax=ax)
-                    ax.set_title(title)
-                    plt.show()
-                    plt.tight_layout()
-                    plt.savefig(f'{basename}.png', dpi=dpi)
-                    plt.savefig(f'{basename}.pdf', dpi=dpi)
-                    plt.close()
-
-                plot_correlations(report, 'pearson')
-                plot_correlations(report, 'spearman')
-                plot_correlations(report, 'kendall')
-
-                def plot_metric(metric: Regression, max_len: int = 1000, dpi: int = 300) -> None:
-                    if metric.model is None:
-                        raise ValueError('Using plot_metric() before fit()')
-
-                    title = r"%s%s%s, %s $\rightarrow$ %s" % \
-                        (judgements_type, ' (reference-free)' if reference_free else '',
-                         f', first {firstn}' if firstn is not None else '', src_lang, tgt_lang)
-                    basename = "metric-%s-%s-firstn=%s-reference_free=%s-%s_%s" % \
-                        (str(metric).lower(), judgements_type, firstn, reference_free, src_lang, tgt_lang)
-
-                    fig, ax = plt.subplots(figsize=figsize)
-                    X = [[i, j] for i, j in product(range(max_len + 1), range(max_len + 1))]
-                    Y = metric.model.predict(X).reshape((max_len + 1, max_len + 1))
-                    ai = ax.imshow(Y, interpolation='none', origin='lower')
-                    divider = make_axes_locatable(ax)
-                    cax = divider.append_axes('right', size='5%', pad=0.05)
-                    fig.colorbar(ai, cax=cax)
-                    ax.set_title(title)
-                    ax.set_xlabel('source length' if reference_free else 'reference length')
-                    ax.set_ylabel('translation length')
-                    plt.show()
-                    plt.tight_layout()
-                    plt.savefig(f'{basename}.png', dpi=dpi)
-                    plt.savefig(f'{basename}.pdf', dpi=dpi)
-                    plt.close()
-
-                plot_metric(regression_baseline)
+                evaluator.submit_and_report()
 
     print("Done")
 

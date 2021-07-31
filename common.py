@@ -21,11 +21,11 @@ Report = Dict[str, List[float]]
 class Judgements:
 
     def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
-                 translations: List[str], scores: List[float], shuffle: bool = True,
+                 translations: List[str], scores: Optional[List[float]], shuffle: bool = True,
                  shuffle_random_state: int = 42, make_unique: bool = True):
         assert references is None or len(references) == len(src_texts)
         assert len(translations) == len(src_texts)
-        assert len(scores) == len(src_texts)
+        assert scores is None or len(scores) == len(src_texts)
 
         if make_unique:
             new_src_texts, new_references, new_translations, new_scores = [], [] if references else None, [], dict()
@@ -71,7 +71,7 @@ class Judgements:
         src_texts = list(self.src_texts[indexes])
         references = list(self.references[indexes]) if self.references is not None else None
         translations = list(self.translations[indexes])
-        scores = list(self.scores[indexes])
+        scores = list(self.scores[indexes] if self.references is not None else None)
         return Judgements(src_texts, references, translations, scores, shuffle=False, make_unique=False)
 
     def split(self, *other_lists: List, split_ratio: float = 0.8) -> Tuple[Tuple['Judgements', List[List]],
@@ -216,11 +216,73 @@ class Evaluator:
             return ["zh-en", "en-de"]
         elif judgements_type == "catastrophic":
             return ["en-cs", "en-de", "en-ja", "en-zh"]
+        # submission data sources:
+        elif judgements_type == "challengeset":
+            return ["en-cs", "en-de", "en-ja", "en-zh"]
+        elif judgements_type == "florestest":
+            return ["en-cs", "en-de", "en-ja", "en-zh"]
+        elif judgements_type == "newstest":
+            return ["en-cs", "en-de", "en-ja", "en-zh"]
+        elif judgements_type == "tedtalks":
+            return ["en-cs", "en-de", "en-ja", "en-zh"]
         else:
             raise ValueError(judgements_type)
 
     def load_judgements(self, split: str = "train", error_type: Optional[str] = None,
                         first_reference_only: bool = True) -> Judgements:
+        def assert_submit_data_dir(data_dir: str) -> None:
+            assert split == "test"
+            if os.path.exists(data_dir):
+                return
+            else:
+                raise ValueError(
+                    "Download WMT test set from:\n"
+                    "https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS\n"
+                    "and put its root into data_dir, getting data_dir/WMT21-data")
+
+        def load_submission_judgements(judgements_type: str, lang_pair: str):
+            data_dir = "data_dir/WMT21-data"
+
+            assert_submit_data_dir(data_dir)
+            sources_path = os.path.join("data_dir/WMT21-data", "sources", "%s2021.%s.src.%s"
+                                        % (judgements_type, lang_pair, lang_pair.split("-")[0]))
+            with open(sources_path) as f:
+                sources = [l.strip() for l in f.readlines()]
+
+            refs = []
+            for possible_ref_name in ["ref-A", "ref-B"]:
+                references_path = os.path.join(data_dir, "references", "%s2021.%s.ref.%s.%s"
+                                            % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
+                try:
+                    with open(references_path) as ref:
+                        if not refs:
+                            refs = [[r] for r in ref]
+                        else:
+                            for r_prevs, r_new in zip(refs, ref):
+                                r_prevs.append(r_new)
+                except FileNotFoundError:
+                    print("Reference %s for %s:%s:%s:%s not found. This can be ok, but better check"
+                          % (possible_ref_name, judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
+
+            sys_dir = os.path.join(data_dir, "system-outputs", "%s2021" % judgements_type)
+            system_files = os.listdir(sys_dir)
+            system_names = set([sys_file.replace(lang_pair, "").replace(lang_pair.split("-")[0], "")
+                                 .replace(".", "").replace("hyp", "") for sys_file in system_files])
+            all_translations = []
+            all_sources = []
+            all_refs = []
+            for sys_name in system_names:
+                with open(os.path.join(sys_dir, "%s2021.%s.hyp.%s.%s" %
+                                                (judgements_type, lang_pair, sys_name, lang_pair.split("-")[0]))) as f:
+                    sys_translations = [l.strip() for l in f.readlines()]
+                    assert len(sources) == len(references) == len(sys_translations)
+
+                    all_translations.extend(sys_translations)
+                    all_sources.extend(sources)
+                    all_refs.extend(references)
+
+            return all_sources, all_refs, all_translations
+
         if self.judgements_type == "DA":
             split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
             src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
@@ -302,7 +364,12 @@ class Evaluator:
             references = None
             translations = df["translation"].tolist()
             scores = df["judgements"].tolist()
-
+        elif self.judgements_type in ["challengeset", "florestest", "newstest", "tedtalks"]:
+            if split == "train":
+                return self.load_judgements(split, error_type, first_reference_only)
+            else:
+                src_texts, references, translations = load_submission_judgements(self.judgements_type, self.lang_pair)
+            scores = None
         else:
             raise ValueError(self.judgements_type)
 
@@ -311,7 +378,9 @@ class Evaluator:
 
         judgements = Judgements(src_texts, references, translations, scores)
 
-        if split == "train":
+        if scores is None:
+            print("Test evaluation - no splitting")
+        elif split == "train":
             (judgements, []), _ = judgements.split()
         elif split == "test":
             _, (judgements, []) = judgements.split()
@@ -345,3 +414,12 @@ class Evaluator:
                 report[metric.label] = [float(val) for val in metric.compute_ref_free(test_judgements)]
 
         return report
+
+    def submit_and_report(self, submitted_metrics: List[Metric], submit_dir="submit_dir") -> None:
+        test_judgements = self.load_judgements("test")
+        if not self.reference_free:
+            for metric in self.metrics:
+                report[metric.label] = [float(val) for val in metric.compute(test_judgements)]
+        else:
+            for metric in [m for m in self.metrics if isinstance(m, ReferenceFreeMetric)]:
+                report[metric.label] = [float(val) for val in metric.compute_ref_free(test_judgements)]
