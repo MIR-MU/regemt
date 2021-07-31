@@ -5,6 +5,7 @@ from typing import Tuple, Set, Optional, List
 import sys
 import warnings
 
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import transformers
@@ -174,6 +175,7 @@ def main(firstn: Optional[int] = None,
 
                     plot_correlations('pearson')
                     correlations = plot_correlations('spearman')
+                    np.fill_diagonal(correlations, -np.inf)
 
                     if ablation_study:
                         ablation_study_result = float(correlations['human'][regression.label])
