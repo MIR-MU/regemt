@@ -9,7 +9,7 @@ import seaborn as sns
 import transformers
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from bertscore import BERTScore
+# from bertscore import BERTScore
 from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
@@ -61,15 +61,16 @@ def main(firstn: Optional[float] = None,
                     return metric
 
                 if enable_sota_metrics:
-                    from prism_metric import PrismMetric
-                    from comet_metric import Comet
-                    metrics += [
-                        make_metric(Comet),
-                        make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
-                    ]
+                    # from prism_metric import PrismMetric
+                    # from comet_metric import Comet
+                    # metrics += [
+                    #     make_metric(Comet),
+                    #     make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                    # ]
+                    pass
 
                 metrics += [
-                    make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
+                    # make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
                     make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
                 ]
 
@@ -79,8 +80,8 @@ def main(firstn: Optional[float] = None,
                 metrics += [
                     make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
                     make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
-                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
-                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
+                    # make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
+                    # make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
                 ]
 
                 if enable_fasttext_metrics:
@@ -115,23 +116,23 @@ def main(firstn: Optional[float] = None,
                 metrics = list(filter(lambda metric: metric is not None, metrics))
 
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
-                                      judgements_type="WMT_test",
+                                      judgements_type=judgements_type,
                                       reference_free=reference_free, firstn=firstn)
-                evaluator.submit_and_report()
+                evaluator.submit_and_report(submitted_metrics_labels=["Regression", "Regression_baseline", "WMD"],
+                                            lang_pair=lang_pair)
 
-    print("Done")
 
 
 if __name__ == '__main__':
-    os.environ['TOKENIZERS_PARALLELISM'] = "false"
-    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    transformers.logging.set_verbosity_error()
-    try:
-        import tensorflow as tf
-        tf.get_logger().setLevel('ERROR')
-    except ImportError:
-        pass
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
+    # os.environ['TOKENIZERS_PARALLELISM'] = "false"
+    # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    # transformers.logging.set_verbosity_error()
+    # try:
+    #     import tensorflow as tf
+    #     tf.get_logger().setLevel('ERROR')
+    # except ImportError:
+    #     pass
+    # logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
     parameters = dict()
     for arg in sys.argv[1:]:
@@ -149,6 +150,7 @@ if __name__ == '__main__':
         else:
             raise ValueError(f'Unrecognized command-line argument: {arg}')
 
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', category=UserWarning)
-        main(**parameters)
+    # with warnings.catch_warnings():
+    #     warnings.filterwarnings('ignore', category=UserWarning)
+
+    main(**parameters)

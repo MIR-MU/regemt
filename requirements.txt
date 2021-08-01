@@ -2,5 +2,4 @@
 bleurt @ git+https://github.com/google-research/bleurt.git@b610120#egg=bleurt
 fairseq==0.9.0
 sentencepiece~=0.1.91
-tensorflow~=2.2.0
 unbabel-comet==0.1.0

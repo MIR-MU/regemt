@@ -2,13 +2,15 @@ import abc
 import os
 from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
 from statistics import mean
-from itertools import repeat
+from itertools import repeat, chain
 import logging
 
 import pandas as pd
 from gensim.utils import simple_preprocess
 from tqdm.autonotebook import tqdm
 import sklearn.utils
+
+import validation
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,13 +23,16 @@ Report = Dict[str, List[float]]
 class Judgements:
 
     def __init__(self, src_texts: List[str], references: Optional[List[List[str]]],
-                 translations: List[str], scores: Optional[List[float]], shuffle: bool = True,
-                 shuffle_random_state: int = 42, make_unique: bool = True):
+                 translations: List[str], scores: Optional[List[float]], metadata: Optional[List[Any]] = None,
+                 shuffle: bool = True, shuffle_random_state: int = 42, make_unique: bool = True):
         assert references is None or len(references) == len(src_texts)
         assert len(translations) == len(src_texts)
         assert scores is None or len(scores) == len(src_texts)
+        assert metadata is None or len(metadata) == len(src_texts)
 
         if make_unique:
+            if metadata is not None:
+                raise ValueError("Nonempty lang param not supported")
             new_src_texts, new_references, new_translations, new_scores = [], [] if references else None, [], dict()
             for row in zip(src_texts, map(tuple, references) if references else repeat(None), translations, scores):
                 src_text, reference, translation, score = row
@@ -51,11 +56,14 @@ class Judgements:
                 src_texts, translations, scores, random_state=shuffle_random_state)
             if references is not None:
                 references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
+            if references is not None:
+                metadata = sklearn.utils.shuffle(metadata, random_state=shuffle_random_state)
 
         self.src_texts = tuple(src_texts)
         self.references = tuple(map(tuple, references)) if references is not None else None
         self.translations = tuple(translations)
-        self.scores = tuple(scores)
+        self.scores = tuple(scores) if scores is not None else None
+        self.metadata = tuple(metadata) if metadata is not None else None
 
     def get_tokenized_texts(self, desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
         sources = [t[0] for t in self.references] if self.references is not None else self.src_texts
@@ -71,7 +79,7 @@ class Judgements:
         src_texts = list(self.src_texts[indexes])
         references = list(self.references[indexes]) if self.references is not None else None
         translations = list(self.translations[indexes])
-        scores = list(self.scores[indexes] if self.references is not None else None)
+        scores = list(self.scores[indexes]) if self.scores is not None else None
         return Judgements(src_texts, references, translations, scores, shuffle=False, make_unique=False)
 
     def split(self, *other_lists: List, split_ratio: float = 0.8) -> Tuple[Tuple['Judgements', List[List]],
@@ -228,8 +236,11 @@ class Evaluator:
         else:
             raise ValueError(judgements_type)
 
-    def load_judgements(self, split: str = "train", error_type: Optional[str] = None,
+    def load_judgements(self, split: str = "train", multiling: bool = False, error_type: Optional[str] = None,
                         first_reference_only: bool = True) -> Judgements:
+        lang_pairs = [self.lang_pair] if not multiling else self.langs_for_judgements(self.judgements_type)
+        print("Loading %s for lang pairs %s" % (self.judgements_type, lang_pairs))
+
         def assert_submit_data_dir(data_dir: str) -> None:
             assert split == "test"
             if os.path.exists(data_dir):
@@ -244,6 +255,8 @@ class Evaluator:
             data_dir = "data_dir/WMT21-data"
 
             assert_submit_data_dir(data_dir)
+            meta = None
+
             sources_path = os.path.join("data_dir/WMT21-data", "sources", "%s2021.%s.src.%s"
                                         % (judgements_type, lang_pair, lang_pair.split("-")[0]))
             with open(sources_path) as f:
@@ -260,6 +273,7 @@ class Evaluator:
                         else:
                             for r_prevs, r_new in zip(refs, ref):
                                 r_prevs.append(r_new)
+
                 except FileNotFoundError:
                     print("Reference %s for %s:%s:%s:%s not found. This can be ok, but better check"
                           % (possible_ref_name, judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
@@ -271,121 +285,163 @@ class Evaluator:
             all_translations = []
             all_sources = []
             all_refs = []
+
             for sys_name in system_names:
                 with open(os.path.join(sys_dir, "%s2021.%s.hyp.%s.%s" %
                                                 (judgements_type, lang_pair, sys_name, lang_pair.split("-")[0]))) as f:
                     sys_translations = [l.strip() for l in f.readlines()]
                     assert len(sources) == len(references) == len(sys_translations)
 
+                    for i, (src, refs, trans) in enumerate(zip(sources, references, sys_translations)):
+                        for ref_name, ref in zip(["ref-A", "ref-B"], refs):
+                            all_sources.append(src)
+                            all_refs.append(ref)
+                            all_translations.append(trans)
+
+                            meta.append([i, ref_name, sys_name])
+
                     all_translations.extend(sys_translations)
                     all_sources.extend(sources)
                     all_refs.extend(references)
 
-            return all_sources, all_refs, all_translations
+            return all_sources, all_refs, all_translations, meta
 
-        if self.judgements_type == "DA":
-            split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
-            src_texts = self._load_file(split_file_template % ("source", self.lang_pair))
-            references = [[ref] for ref in self._load_file(split_file_template % ("reference", self.lang_pair))]
-            translations = self._load_file(split_file_template % ("mt-system", self.lang_pair))
-            scores = [float(s) for s in self._load_file(split_file_template % ("human", self.lang_pair))]
+        judgements_all = []
 
-        elif self.judgements_type == "PSQM":
-            split_file_template = os.path.join(self.data_dir, "psqm_newstest2020_zhen.tsv")
-            all_df = pd.read_csv(split_file_template, sep="\t")
-            all_df = all_df.set_index(["doc_id", "seg_id"])
-            all_df = all_df.sort_index()
+        for lang_pair in lang_pairs:
+            if self.judgements_type == "DA":
+                split_file_template = os.path.join(self.data_dir, TEST_DATASET_FILE_TEMPLATE)
+                src_texts = self._load_file(split_file_template % ("source", lang_pair))
+                references = [[ref] for ref in self._load_file(split_file_template % ("reference", lang_pair))]
+                translations = self._load_file(split_file_template % ("mt-system", lang_pair))
+                scores = [float(s) for s in self._load_file(split_file_template % ("human", lang_pair))]
 
-            src_texts = []
-            references = []
-            translations = []
-            scores = []
+            elif self.judgements_type == "PSQM":
+                split_file_template = os.path.join(self.data_dir, "psqm_newstest2020_zhen.tsv")
+                all_df = pd.read_csv(split_file_template, sep="\t")
+                all_df = all_df.set_index(["doc_id", "seg_id"])
+                all_df = all_df.sort_index()
 
-            for i in tqdm(all_df.index, total=len(all_df)):
-                segment_df = all_df.loc[i]
+                src_texts = []
+                references = []
+                translations = []
+                scores = []
 
-                ref_judgements = segment_df[segment_df.system.apply(lambda label: "Human" in label)]
-                if len(ref_judgements):
-                    max_scored_reference = ref_judgements[ref_judgements.score == ref_judgements.score.max()].iloc[0]
-                    max_scored_rater = max_scored_reference.rater
-                    same_rater_judgements = segment_df[segment_df.rater == max_scored_rater]
-                    for idx, judgement in same_rater_judgements.iterrows():
-                        src_texts.append(judgement.source)
-                        references.append([max_scored_reference.target])
-                        translations.append(judgement.target)
-                        scores.append(judgement.score)
-                        break  # we want variable translation pairs, but if more is needed, we can remove this
+                for i in tqdm(all_df.index, total=len(all_df)):
+                    segment_df = all_df.loc[i]
+
+                    ref_judgements = segment_df[segment_df.system.apply(lambda label: "Human" in label)]
+                    if len(ref_judgements):
+                        max_scored_ref = ref_judgements[ref_judgements.score == ref_judgements.score.max()].iloc[0]
+                        max_scored_rater = max_scored_ref.rater
+                        same_rater_judgements = segment_df[segment_df.rater == max_scored_rater]
+                        for idx, judgement in same_rater_judgements.iterrows():
+                            src_texts.append(judgement.source)
+                            references.append([max_scored_ref.target])
+                            translations.append(judgement.target)
+                            scores.append(judgement.score)
+                            break  # we want variable translation pairs, but if more is needed, we can remove this
+                    else:
+                        print("No reference judgements: %s" % i)
+
+            elif self.judgements_type == "MQM":
+                df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_%s.tsv" % lang_pair.replace("-", "")),
+                                 sep="\t")
+                df = df.set_index(["system", "seg_id"])
+
+                judgements_df = pd.read_csv(
+                    os.path.join(self.data_dir, "mqm_newstest2020_%s.avg_seg_scores.tsv" % lang_pair.replace("-", "")),
+                    sep=" ")
+                judgements_df = judgements_df.set_index(["system", "seg_id"])
+
+                df = df.join(judgements_df)
+                df = df.reset_index().set_index(["seg_id", "doc_id", "rater"])
+                system_df = df[~df["system"].isin(["Human-A.0", "Human-B.0"])]
+
+                human_df = df[df["system"].isin(["Human-A.0", "Human-B.0"])]
+                human_df_ok = human_df[human_df.category == "no-error"]
+                human_df_translated = human_df_ok.join(system_df, lsuffix="_human", rsuffix="_system")
+
+                all_references = human_df_translated["target_human"].groupby(level=[0, 1, 2]).unique()
+                all_references.name = 'all_references'
+                ref_translation_df = human_df_translated.join(all_references)
+
+                if first_reference_only:
+                    ref_translation_df['all_references'] = ref_translation_df['all_references'].apply(lambda x: [x[0]])
+
+                translated_clean_df = ref_translation_df[~pd.isna(ref_translation_df).any(axis=1)]
+
+                if error_type is None:
+                    selected_df = translated_clean_df
                 else:
-                    print("No reference judgements: %s" % i)
+                    selected_df = translated_clean_df[translated_clean_df["category_system"] == error_type]
 
-        elif self.judgements_type == "MQM":
-            df = pd.read_csv(os.path.join(self.data_dir, "mqm_newstest2020_%s.tsv" % self.lang_pair.replace("-", "")),
-                             sep="\t")
-            df = df.set_index(["system", "seg_id"])
+                src_texts = selected_df["source_system"].tolist()
+                references = selected_df["all_references"].tolist()
+                translations = selected_df["target_system"].tolist()
+                scores = selected_df["mqm_avg_score_system"].tolist()
 
-            judgements_df = pd.read_csv(
-                os.path.join(self.data_dir, "mqm_newstest2020_%s.avg_seg_scores.tsv" % self.lang_pair.replace("-", "")),
-                sep=" ")
-            judgements_df = judgements_df.set_index(["system", "seg_id"])
+            elif self.judgements_type == "catastrophic":
+                df = pd.read_csv("data_dir/%s_majority_dev.tsv" % self.lang_pair.replace("-", ""),
+                                 sep="\t", names=["source", "translation", "judgements", "is_critical"])
+                df.judgements = df.judgements.apply(lambda j:
+                                                    sum(map(int, j.replace("[", "").replace("]", "").split(", "))))
+                src_texts = df["source"].tolist()
+                references = None
+                translations = df["translation"].tolist()
+                scores = df["judgements"].tolist()
+            elif self.judgements_type in ["challengeset", "florestest", "newstest", "tedtalks"]:
+                if split == "train":
+                    orig_type = self.judgements_type
+                    # a bit of a hack, this needs to be refactored
+                    self.judgements_type = "MQM"
+                    tgt_langs = [pair.split("-")[1] for pair in self.langs_for_judgements("MQM")]
+                    this_lang_pair = self.lang_pair.split("-")[1]
 
-            df = df.join(judgements_df)
-            df = df.reset_index().set_index(["seg_id", "doc_id", "rater"])
-            system_df = df[~df["system"].isin(["Human-A.0", "Human-B.0"])]
+                    # apply a fit for a specific lang only if this is monolingual=tgt_lang eval
+                    if not self.reference_free and this_lang_pair.split("-")[1] in tgt_langs:
+                        self.lang_pair = [pair for pair in self.langs_for_judgements("MQM")
+                                          if pair.split("-")[1] == this_lang_pair.split("-")[1]][0]
+                        out = self.load_judgements(split, error_type=error_type,
+                                                   first_reference_only=first_reference_only)
+                        self.lang_pair = this_lang_pair
 
-            human_df = df[df["system"].isin(["Human-A.0", "Human-B.0"])]
-            human_df_ok = human_df[human_df.category == "no-error"]
-            human_df_translated = human_df_ok.join(system_df, lsuffix="_human", rsuffix="_system")
+                    else:
+                        out = self.load_judgements(split, multiling=True, error_type=error_type,
+                                                   first_reference_only=first_reference_only)
+                    self.judgements_type = orig_type
+                    return out
 
-            all_references = human_df_translated["target_human"].groupby(level=[0, 1, 2]).unique()
-            all_references.name = 'all_references'
-            ref_translation_df = human_df_translated.join(all_references)
-
-            if first_reference_only:
-                ref_translation_df['all_references'] = ref_translation_df['all_references'].apply(lambda x: [x[0]])
-
-            translated_clean_df = ref_translation_df[~pd.isna(ref_translation_df).any(axis=1)]
-
-            if error_type is None:
-                selected_df = translated_clean_df
+                else:
+                    src_texts, references, translations, meta = load_submission_judgements(self.judgements_type,
+                                                                                           self.lang_pair)
+                    scores = None
             else:
-                selected_df = translated_clean_df[translated_clean_df["category_system"] == error_type]
+                raise ValueError(self.judgements_type)
 
-            src_texts = selected_df["source_system"].tolist()
-            references = selected_df["all_references"].tolist()
-            translations = selected_df["target_system"].tolist()
-            scores = selected_df["mqm_avg_score_system"].tolist()
+            if self.reference_free:
+                references = None
 
-        elif self.judgements_type == "catastrophic":
-            df = pd.read_csv("data_dir/%s_majority_dev.tsv" % self.lang_pair.replace("-", ""),
-                             sep="\t", names=["source", "translation", "judgements", "is_critical"])
-            df.judgements = df.judgements.apply(lambda j:
-                                                sum(map(int, j.replace("[", "").replace("]", "").split(", "))))
-            src_texts = df["source"].tolist()
-            references = None
-            translations = df["translation"].tolist()
-            scores = df["judgements"].tolist()
-        elif self.judgements_type in ["challengeset", "florestest", "newstest", "tedtalks"]:
-            if split == "train":
-                return self.load_judgements(split, error_type, first_reference_only)
+            judgements = Judgements(src_texts, references, translations, scores)
+
+            if scores is None:
+                print("Test evaluation - no splitting")
+            elif split == "train":
+                (judgements, []), _ = judgements.split()
+            elif split == "test":
+                _, (judgements, []) = judgements.split()
             else:
-                src_texts, references, translations = load_submission_judgements(self.judgements_type, self.lang_pair)
-            scores = None
-        else:
-            raise ValueError(self.judgements_type)
+                raise ValueError(split)
+            judgements_all.append(judgements)
 
-        if self.reference_free:
-            references = None
-
-        judgements = Judgements(src_texts, references, translations, scores)
-
-        if scores is None:
-            print("Test evaluation - no splitting")
-        elif split == "train":
-            (judgements, []), _ = judgements.split()
-        elif split == "test":
-            _, (judgements, []) = judgements.split()
-        else:
-            raise ValueError(split)
+        # unify judgements for given split over all languages
+        judgements = Judgements(*(list(chain(*[j.src_texts for j in judgements_all])),
+                                  list(chain(*[j.references for j in judgements_all]))
+                                  if not self.reference_free else None,
+                                  list(chain(*[j.translations for j in judgements_all])),
+                                  list(chain(*[j.scores for j in judgements_all])),
+                                  list(chain(*[j.metadata for j in judgements_all]))
+                                  if all(j.metadata is not None for j in judgements_all) else None))
 
         if self.firstn is not None:
             if self.firstn > len(judgements):
@@ -394,6 +450,7 @@ class Evaluator:
                 LOGGER.warning(message)
             else:
                 judgements = judgements[:self.firstn]
+                # HERE judgements are None on MQM nested call
 
         return judgements
 
@@ -415,11 +472,41 @@ class Evaluator:
 
         return report
 
-    def submit_and_report(self, submitted_metrics: List[Metric], submit_dir="submit_dir") -> None:
+    def format_print_metric_output(self, metric: Metric, scores: List[float], judgements: Judgements,
+                                   lang_pair: str, submit_dir: str, stype: str = "seg"):
+        report_fpath = os.path.join(submit_dir, os.path.join(submit_dir, "%s-%s.%s.score"
+                                                             % ("src" if self.reference_free else "ref",
+                                                                metric.label, stype)))
+        print("Generating report of metric %s to %s" % (metric.label, report_fpath))
+
+        if os.path.exists(report_fpath):
+            print("NOTE that this path exists. If this is a first set of judgements, please delete it manually,"
+                  "or it will be appended to the existing file.")
+
+        with open(report_fpath, "a") as out_f:
+            firstrow = True
+            for (row_i, ref_author, sys_name), score in zip(judgements.metadata, scores):
+                row = "\t".join([metric.label, lang_pair, self.judgements_type, ref_author, sys_name, row_i, score])
+                if firstrow:
+                    print("Expected: %s" % validation.COLFORMAT[stype])
+                    print("Actual: %s" % row)
+                    firstrow = False
+
+                out_f.write(row + "\n")
+
+        if validation.validate_metric_output(metric.label, self.reference_free):
+            print("Output format validated")
+
+    def submit_and_report(self, submitted_metrics_labels: List[Metric],
+                          lang_pair: str, submit_dir="submit_dir") -> None:
+        report = {}
         test_judgements = self.load_judgements("test")
+        submitted_metrics = [m for m in self.metrics if m.label in submitted_metrics_labels]
         if not self.reference_free:
-            for metric in self.metrics:
-                report[metric.label] = [float(val) for val in metric.compute(test_judgements)]
+            for metric in submitted_metrics:
+                scores = [float(val) for val in metric.compute(test_judgements)]
+                self.format_print_metric_output(metric, scores, test_judgements, lang_pair, submit_dir)
         else:
-            for metric in [m for m in self.metrics if isinstance(m, ReferenceFreeMetric)]:
-                report[metric.label] = [float(val) for val in metric.compute_ref_free(test_judgements)]
+            for metric in [m for m in submitted_metrics if isinstance(m, ReferenceFreeMetric)]:
+                scores = [float(val) for val in metric.compute_ref_free(test_judgements)]
+                self.format_print_metric_output(metric, scores, test_judgements, lang_pair, submit_dir)

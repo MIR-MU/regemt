@@ -196,6 +196,7 @@ class Regression(ReferenceFreeMetric):
                 'hyperparameters': {
                     'solver': ['lbfgs', 'sgd', 'adam'],
                     'alpha': np.logspace(1, 4, 10),
+                    'max_iter': 1500
                 },
                 'can_select_features': False,
             }
@@ -230,8 +231,7 @@ class Regression(ReferenceFreeMetric):
         assert (len(test_X), len(test_y)) == (len(test_judgements), len(test_judgements))
 
         models, best_model, best_r2 = self._get_models(), None, float('-inf')
-        with parallel_backend('multiprocessing', n_jobs=32), warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=ConvergenceWarning)
+        with parallel_backend('multiprocessing', n_jobs=32):
             for model in models:
                 model.fit(train_X, train_y)
                 r2 = model.score(test_X, test_y)
