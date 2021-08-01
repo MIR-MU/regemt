@@ -224,15 +224,17 @@ class Evaluator:
             return ["zh-en", "en-de"]
         elif judgements_type == "catastrophic":
             return ["en-cs", "en-de", "en-ja", "en-zh"]
+
         # submission data sources:
         elif judgements_type == "challengeset":
-            return ["en-cs", "en-de", "en-ja", "en-zh"]
+            return ["de-en", "en-de", "zh-en"]
         elif judgements_type == "florestest":
-            return ["en-cs", "en-de", "en-ja", "en-zh"]
+            return ["bn-hi", "hi-bn", "xh-zu", "zu-xh"]
         elif judgements_type == "newstest":
-            return ["en-cs", "en-de", "en-ja", "en-zh"]
+            return ["cs-en", "de-en", "de-fr", "en-cs", "en-de", "en-ha", "en-is", "en-ja", "en-ru", "en-zh", "fr-de",
+                    "ha-en", "is-en", "ja-en", "ru-en", "zh-en"]
         elif judgements_type == "tedtalks":
-            return ["en-cs", "en-de", "en-ja", "en-zh"]
+            return ["en-de", "en-ru", "zh-en"]
         else:
             raise ValueError(judgements_type)
 
