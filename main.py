@@ -22,7 +22,7 @@ LOGGER = logging.getLogger(__name__)
 
 def main(firstn: Optional[float] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('challengeset', 'florestest', 'newstest', 'tedtalks'),
+         judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'newstest2021', 'tedtalks'),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
          enable_compositionality: bool = True,

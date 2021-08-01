@@ -228,9 +228,9 @@ class Evaluator:
         # submission data sources:
         elif judgements_type == "challengeset":
             return ["de-en", "en-de", "zh-en"]
-        elif judgements_type == "florestest":
+        elif judgements_type == "florestest2021":
             return ["bn-hi", "hi-bn", "xh-zu", "zu-xh"]
-        elif judgements_type == "newstest":
+        elif judgements_type == "newstest2021":
             return ["cs-en", "de-en", "de-fr", "en-cs", "en-de", "en-ha", "en-is", "en-ja", "en-ru", "en-zh", "fr-de",
                     "ha-en", "is-en", "ja-en", "ru-en", "zh-en"]
         elif judgements_type == "tedtalks":
@@ -259,14 +259,14 @@ class Evaluator:
             assert_submit_data_dir(data_dir)
             meta = None
 
-            sources_path = os.path.join("data_dir/WMT21-data", "sources", "%s2021.%s.src.%s"
+            sources_path = os.path.join("data_dir/WMT21-data", "sources", "%s.%s.src.%s"
                                         % (judgements_type, lang_pair, lang_pair.split("-")[0]))
             with open(sources_path) as f:
                 sources = [l.strip() for l in f.readlines()]
 
             refs = []
             for possible_ref_name in ["ref-A", "ref-B"]:
-                references_path = os.path.join(data_dir, "references", "%s2021.%s.ref.%s.%s"
+                references_path = os.path.join(data_dir, "references", "%s.%s.ref.%s.%s"
                                             % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
                 try:
                     with open(references_path) as ref:
@@ -280,7 +280,7 @@ class Evaluator:
                     print("Reference %s for %s:%s:%s:%s not found. This can be ok, but better check"
                           % (possible_ref_name, judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
 
-            sys_dir = os.path.join(data_dir, "system-outputs", "%s2021" % judgements_type)
+            sys_dir = os.path.join(data_dir, "system-outputs", "%s" % judgements_type)
             system_files = os.listdir(sys_dir)
             system_names = set([sys_file.replace(lang_pair, "").replace(lang_pair.split("-")[0], "")
                                  .replace(".", "").replace("hyp", "") for sys_file in system_files])
@@ -289,7 +289,7 @@ class Evaluator:
             all_refs = []
 
             for sys_name in system_names:
-                with open(os.path.join(sys_dir, "%s2021.%s.hyp.%s.%s" %
+                with open(os.path.join(sys_dir, "%s.%s.hyp.%s.%s" %
                                                 (judgements_type, lang_pair, sys_name, lang_pair.split("-")[0]))) as f:
                     sys_translations = [l.strip() for l in f.readlines()]
                     assert len(sources) == len(references) == len(sys_translations)
