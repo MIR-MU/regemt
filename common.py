@@ -283,14 +283,14 @@ class Evaluator:
             sys_dir = os.path.join(data_dir, "system-outputs", "%s" % judgements_type)
             system_files = os.listdir(sys_dir)
             system_names = set([sys_file.replace(lang_pair, "").replace(lang_pair.split("-")[0], "")
-                                 .replace(".", "").replace("hyp", "") for sys_file in system_files])
+                                .replace(".", "").replace("hyp", "") for sys_file in system_files])
             all_translations = []
             all_sources = []
             all_refs = []
-
+            print("SYSTEM NAMES: "+ system_names)
             for sys_name in system_names:
-                with open(os.path.join(sys_dir, "%s.%s.hyp.%s.%s" %
-                                                (judgements_type, lang_pair, sys_name, lang_pair.split("-")[0]))) as f:
+                with open(os.path.join(sys_dir, lang_pair, "%s.%s.hyp.%s.%s" %
+                                                (judgements_type, lang_pair, sys_name, lang_pair.split("-")[1]))) as f:
                     sys_translations = [l.strip() for l in f.readlines()]
                     assert len(sources) == len(references) == len(sys_translations)
 
