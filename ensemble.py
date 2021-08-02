@@ -192,7 +192,7 @@ class Regression(ReferenceFreeMetric):
 
         def mlp_regressor():
             return {
-                'model': MLPRegressor(random_state=random_state, max_iter=1500),
+                'model': MLPRegressor(random_state=random_state, max_iter=15000),
                 'hyperparameters': {
                     'solver': ['lbfgs', 'sgd', 'adam'],
                     'alpha': np.logspace(1, 4, 10)

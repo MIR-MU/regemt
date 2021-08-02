@@ -56,7 +56,7 @@ class Judgements:
                 src_texts, translations, scores, random_state=shuffle_random_state)
             if references is not None:
                 references = sklearn.utils.shuffle(references, random_state=shuffle_random_state)
-            if references is not None:
+            if metadata is not None:
                 metadata = sklearn.utils.shuffle(metadata, random_state=shuffle_random_state)
 
         self.src_texts = tuple(src_texts)
@@ -80,7 +80,8 @@ class Judgements:
         references = list(self.references[indexes]) if self.references is not None else None
         translations = list(self.translations[indexes])
         scores = list(self.scores[indexes]) if self.scores is not None else None
-        return Judgements(src_texts, references, translations, scores, shuffle=False, make_unique=False)
+        metadata = list(self.metadata[indexes]) if self.metadata is not None else None
+        return Judgements(src_texts, references, translations, scores, metadata, shuffle=False, make_unique=False)
 
     def split(self, *other_lists: List, split_ratio: float = 0.8) -> Tuple[Tuple['Judgements', List[List]],
                                                                            Tuple['Judgements', List[List]]]:
@@ -238,77 +239,79 @@ class Evaluator:
         else:
             raise ValueError(judgements_type)
 
+    def assert_submit_data_dir(self, data_dir: str) -> None:
+        # assert self.split == "test"
+        if os.path.exists(data_dir):
+            return
+        else:
+            raise ValueError(
+                "Download WMT test set from:\n"
+                "https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS\n"
+                "and put its root into data_dir, getting data_dir/WMT21-data")
+
+    def load_submission_judgements(self, judgements_type: str, lang_pair: str):
+        data_dir = "data_dir/WMT21-data"
+
+        self.assert_submit_data_dir(data_dir)
+        meta = []
+
+        sources_path = os.path.join("data_dir/WMT21-data", "sources", "%s.%s.src.%s"
+                                    % (judgements_type, lang_pair, lang_pair.split("-")[0]))
+        with open(sources_path) as f:
+            sources = [l.strip() for l in f.readlines()]
+
+        references = []
+        for possible_ref_name in ["ref-A", "ref-B"]:
+            references_path = os.path.join(data_dir, "references", "%s.%s.ref.%s.%s"
+                                           % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1]))
+            try:
+                with open(references_path) as ref:
+                    if not references:
+                        references = [[r] for r in ref]
+                    else:
+                        for r_prevs, r_new in zip(references, ref):
+                            r_prevs.append(r_new)
+
+            except FileNotFoundError:
+                print("Reference %s for %s:%s:%s:%s not found. This can be ok, but better check"
+                      % (possible_ref_name, judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
+
+        sys_dir = os.path.join(data_dir, "system-outputs", "%s" % judgements_type, lang_pair)
+        system_files = os.listdir(sys_dir)
+        system_names = set([
+            sys_file.replace(judgements_type, "")
+                    .replace(".%s." % lang_pair, "")
+                    .replace(".%s" % lang_pair.split("-")[1], "")
+                    # .replace("hyp.", "")
+                    # .replace(".", "")
+            for sys_file in system_files])
+        all_translations = []
+        all_sources = []
+        all_refs = []
+        print("SYSTEM NAMES: " + str(system_names))
+        for sys_name in system_names:
+            with open(os.path.join(sys_dir, "%s.%s.%s.%s" %
+                                            (judgements_type, lang_pair, sys_name, lang_pair.split("-")[1]))) as f:
+                sys_translations = [l.strip() for l in f.readlines()]
+                assert len(sources) == len(references) == len(sys_translations)
+
+                for i, (src, refs, trans) in enumerate(zip(sources, references, sys_translations)):
+                    for ref_name, ref in zip(["ref-A", "ref-B"], refs):
+                        all_sources.append(src)
+                        all_refs.append(ref)
+                        all_translations.append(trans)
+
+                        meta.append([i, ref_name, sys_name])
+
+        return all_sources, all_refs, all_translations, meta
+
     def load_judgements(self, split: str = "train", multiling: bool = False, error_type: Optional[str] = None,
                         first_reference_only: bool = True) -> Judgements:
         lang_pairs = [self.lang_pair] if not multiling else self.langs_for_judgements(self.judgements_type)
         print("Loading %s for lang pairs %s" % (self.judgements_type, lang_pairs))
 
-        def assert_submit_data_dir(data_dir: str) -> None:
-            assert split == "test"
-            if os.path.exists(data_dir):
-                return
-            else:
-                raise ValueError(
-                    "Download WMT test set from:\n"
-                    "https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS\n"
-                    "and put its root into data_dir, getting data_dir/WMT21-data")
-
-        def load_submission_judgements(judgements_type: str, lang_pair: str):
-            data_dir = "data_dir/WMT21-data"
-
-            assert_submit_data_dir(data_dir)
-            meta = None
-
-            sources_path = os.path.join("data_dir/WMT21-data", "sources", "%s.%s.src.%s"
-                                        % (judgements_type, lang_pair, lang_pair.split("-")[0]))
-            with open(sources_path) as f:
-                sources = [l.strip() for l in f.readlines()]
-
-            refs = []
-            for possible_ref_name in ["ref-A", "ref-B"]:
-                references_path = os.path.join(data_dir, "references", "%s.%s.ref.%s.%s"
-                                            % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
-                try:
-                    with open(references_path) as ref:
-                        if not refs:
-                            refs = [[r] for r in ref]
-                        else:
-                            for r_prevs, r_new in zip(refs, ref):
-                                r_prevs.append(r_new)
-
-                except FileNotFoundError:
-                    print("Reference %s for %s:%s:%s:%s not found. This can be ok, but better check"
-                          % (possible_ref_name, judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
-
-            sys_dir = os.path.join(data_dir, "system-outputs", "%s" % judgements_type)
-            system_files = os.listdir(sys_dir)
-            system_names = set([sys_file.replace(lang_pair, "").replace(lang_pair.split("-")[0], "")
-                                .replace(".", "").replace("hyp", "") for sys_file in system_files])
-            all_translations = []
-            all_sources = []
-            all_refs = []
-            print("SYSTEM NAMES: "+ system_names)
-            for sys_name in system_names:
-                with open(os.path.join(sys_dir, lang_pair, "%s.%s.hyp.%s.%s" %
-                                                (judgements_type, lang_pair, sys_name, lang_pair.split("-")[1]))) as f:
-                    sys_translations = [l.strip() for l in f.readlines()]
-                    assert len(sources) == len(references) == len(sys_translations)
-
-                    for i, (src, refs, trans) in enumerate(zip(sources, references, sys_translations)):
-                        for ref_name, ref in zip(["ref-A", "ref-B"], refs):
-                            all_sources.append(src)
-                            all_refs.append(ref)
-                            all_translations.append(trans)
-
-                            meta.append([i, ref_name, sys_name])
-
-                    all_translations.extend(sys_translations)
-                    all_sources.extend(sources)
-                    all_refs.extend(references)
-
-            return all_sources, all_refs, all_translations, meta
-
         judgements_all = []
+        meta = None
 
         for lang_pair in lang_pairs:
             if self.judgements_type == "DA":
@@ -392,13 +395,13 @@ class Evaluator:
                 references = None
                 translations = df["translation"].tolist()
                 scores = df["judgements"].tolist()
-            elif self.judgements_type in ["challengeset", "florestest", "newstest", "tedtalks"]:
+            elif self.judgements_type in ["challengeset", "florestest2021", "newstest2021", "tedtalks"]:
                 if split == "train":
                     orig_type = self.judgements_type
                     # a bit of a hack, this needs to be refactored
                     self.judgements_type = "MQM"
                     tgt_langs = [pair.split("-")[1] for pair in self.langs_for_judgements("MQM")]
-                    this_lang_pair = self.lang_pair.split("-")[1]
+                    this_lang_pair = self.lang_pair
 
                     # apply a fit for a specific lang only if this is monolingual=tgt_lang eval
                     if not self.reference_free and this_lang_pair.split("-")[1] in tgt_langs:
@@ -415,8 +418,8 @@ class Evaluator:
                     return out
 
                 else:
-                    src_texts, references, translations, meta = load_submission_judgements(self.judgements_type,
-                                                                                           self.lang_pair)
+                    src_texts, references, translations, meta = self.load_submission_judgements(self.judgements_type,
+                                                                                                self.lang_pair)
                     scores = None
             else:
                 raise ValueError(self.judgements_type)
@@ -424,7 +427,8 @@ class Evaluator:
             if self.reference_free:
                 references = None
 
-            judgements = Judgements(src_texts, references, translations, scores)
+            judgements = Judgements(src_texts, references, translations, scores, meta,
+                                    make_unique=scores is not None, shuffle=scores is not None)
 
             if scores is None:
                 print("Test evaluation - no splitting")
@@ -441,9 +445,12 @@ class Evaluator:
                                   list(chain(*[j.references for j in judgements_all]))
                                   if not self.reference_free else None,
                                   list(chain(*[j.translations for j in judgements_all])),
-                                  list(chain(*[j.scores for j in judgements_all])),
+                                  list(chain(*[j.scores for j in judgements_all]))
+                                  if all(j.scores is not None for j in judgements_all) else None,
                                   list(chain(*[j.metadata for j in judgements_all]))
-                                  if all(j.metadata is not None for j in judgements_all) else None))
+                                  if all(j.metadata is not None for j in judgements_all) else None),
+                                make_unique=all(j.scores is not None for j in judgements_all),
+                                shuffle=all(j.scores is not None for j in judgements_all))
 
         if self.firstn is not None:
             if self.firstn > len(judgements):
@@ -476,19 +483,19 @@ class Evaluator:
 
     def format_print_metric_output(self, metric: Metric, scores: List[float], judgements: Judgements,
                                    lang_pair: str, submit_dir: str, stype: str = "seg"):
-        report_fpath = os.path.join(submit_dir, os.path.join(submit_dir, "%s-%s.%s.score"
-                                                             % ("src" if self.reference_free else "ref",
-                                                                metric.label, stype)))
+        report_fpath = os.path.join(submit_dir, "%s-%s.%s.score" % ("src" if self.reference_free else "ref",
+                                                                    metric.label, stype))
         print("Generating report of metric %s to %s" % (metric.label, report_fpath))
 
         if os.path.exists(report_fpath):
             print("NOTE that this path exists. If this is a first set of judgements, please delete it manually,"
                   "or it will be appended to the existing file.")
 
-        with open(report_fpath, "a") as out_f:
+        with open(report_fpath, "a+") as out_f:
             firstrow = True
             for (row_i, ref_author, sys_name), score in zip(judgements.metadata, scores):
-                row = "\t".join([metric.label, lang_pair, self.judgements_type, ref_author, sys_name, row_i, score])
+                row = "\t".join([metric.label, lang_pair, self.judgements_type, ref_author,
+                                 sys_name, str(row_i), str(score)])
                 if firstrow:
                     print("Expected: %s" % validation.COLFORMAT[stype])
                     print("Actual: %s" % row)
@@ -496,10 +503,10 @@ class Evaluator:
 
                 out_f.write(row + "\n")
 
-        if validation.validate_metric_output(metric.label, self.reference_free):
+        if validation.validate_metric_output("data_dir/WMT21-data", submit_dir, metric.label, self.reference_free):
             print("Output format validated")
 
-    def submit_and_report(self, submitted_metrics_labels: List[Metric],
+    def submit_and_report(self, submitted_metrics_labels: List[str],
                           lang_pair: str, submit_dir="submit_dir") -> None:
         report = {}
         test_judgements = self.load_judgements("test")

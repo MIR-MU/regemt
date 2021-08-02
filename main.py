@@ -19,9 +19,11 @@ from ensemble import Regression
 
 LOGGER = logging.getLogger(__name__)
 
+evaluator = None
+
 
 def main(firstn: Optional[float] = None,
-         reference_frees: Tuple[bool, ...] = (True, False),
+         reference_frees: Tuple[bool, ...] = (False, ),
          judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'newstest2021', 'tedtalks'),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
@@ -29,6 +31,7 @@ def main(firstn: Optional[float] = None,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False):
+    global evaluator
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
