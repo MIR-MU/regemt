@@ -12,12 +12,14 @@ from scipy.stats import pearsonr
 # print(args)
 # metricname = args.metricname
 
-COLS = {'sys': ['metric', 'lp', 'testset', 'refset', 'sysid', 'score'],
-        'seg': ['metric', 'lp', 'testset', 'refset', 'sysid', 'segid', 'score'],
-        }
-COLFORMAT = {'sys': '<METRIC NAME>   <LANG-PAIR>   <TEST SET>    <REF SET>   <SYSTEM>   <SYSTEM LEVEL SCORE>',
-             'seg': '<METRIC NAME>   <LANG-PAIR>   <TESTSET>    <REF SET>   <SYSTEM-ID>   <SEGMENT-ID>   SEGMENT SCORE>',
-             }
+COLS = {
+    'sys': ['metric', 'lp', 'testset', 'refset', 'sysid', 'score'],
+    'seg': ['metric', 'lp', 'testset', 'refset', 'sysid', 'segid', 'score'],
+}
+COLFORMAT = {
+    'sys': '<METRIC NAME>   <LANG-PAIR>   <TEST SET>    <REF SET>   <SYSTEM>   <SYSTEM LEVEL SCORE>',
+    'seg': '<METRIC NAME>   <LANG-PAIR>   <TESTSET>    <REF SET>   <SYSTEM-ID>   <SEGMENT-ID>   SEGMENT SCORE>',
+}
 
 
 def validate_metric_output(data_dir: str, submit_dir: str, metricname: str, reference_free: bool) -> bool:
@@ -35,7 +37,7 @@ def validate_metric_output(data_dir: str, submit_dir: str, metricname: str, refe
         #         mymetric = pd.read_csv(f'./{metricname}.{level}.score.gz', sep='\t',header=None)
 
         except FileNotFoundError:
-            print(f"File not found: '%s'" % metric_path)
+            print("File not found: '%s'" % metric_path)
             raise
 
         try:
@@ -86,8 +88,8 @@ def validate_metric_output(data_dir: str, submit_dir: str, metricname: str, refe
                         try:
                             (pearsonr(merged_scores.score_x, subm_scores))
                         except Exception as e:
-                            print(
-                                f'{refset}, {lp}: error somewhere when attemptng to compute pearson correlation between the scores of the demo metric and  your metric.')
+                            print(f'{refset}, {lp}: error somewhere when attemptng to compute pearson correlation '
+                                  f'between the scores of the demo metric and  your metric.')
                             raise e
                     elif level == 'seg':
                         merged_scores = pd.merge(ldf, metriclp, how='left',
@@ -114,11 +116,13 @@ def validate_metric_output(data_dir: str, submit_dir: str, metricname: str, refe
                                 (pearsonr(merged_scores.score_x, subm_scores))
                             except Exception as e:
                                 print(
-                                    f'{refset}, {lp}: error somewhere when attemptng to compute pearson correlation between the scores of the demo metric and  your metric.')
+                                    f'{refset}, {lp}: error somewhere when attemptng to compute pearson correlation '
+                                    f'between the scores of the demo metric and  your metric.')
                                 raise e
 
         print('Done!')
         print(
-            'If you cant find the source of any errors that this script flags, please submit your metrics ASAP with subject "WMT Metrics submission (error)" so we can work with you to solve this')
+            'If you cant find the source of any errors that this script flags, please submit your metrics ASAP with '
+            'subject "WMT Metrics submission (error)" so we can work with you to solve this')
 
     return True

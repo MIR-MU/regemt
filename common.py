@@ -258,7 +258,7 @@ class Evaluator:
         sources_path = os.path.join("data_dir/WMT21-data", "sources", "%s.%s.src.%s"
                                     % (judgements_type, lang_pair, lang_pair.split("-")[0]))
         with open(sources_path) as f:
-            sources = [l.strip() for l in f.readlines()]
+            sources = [line.strip() for line in f]
 
         references = []
         for possible_ref_name in ["ref-A", "ref-B"]:
@@ -282,8 +282,8 @@ class Evaluator:
             sys_file.replace(judgements_type, "")
                     .replace(".%s." % lang_pair, "")
                     .replace(".%s" % lang_pair.split("-")[1], "")
-                    # .replace("hyp.", "")
-                    # .replace(".", "")
+            # .replace("hyp.", "")
+            # .replace(".", "")
             for sys_file in system_files])
         all_translations = []
         all_sources = []
@@ -292,7 +292,7 @@ class Evaluator:
         for sys_name in system_names:
             with open(os.path.join(sys_dir, "%s.%s.%s.%s" %
                                             (judgements_type, lang_pair, sys_name, lang_pair.split("-")[1]))) as f:
-                sys_translations = [l.strip() for l in f.readlines()]
+                sys_translations = [line.strip() for line in f]
                 assert len(sources) == len(references) == len(sys_translations)
 
                 for i, (src, refs, trans) in enumerate(zip(sources, references, sys_translations)):
@@ -508,7 +508,6 @@ class Evaluator:
 
     def submit_and_report(self, submitted_metrics_labels: List[str],
                           lang_pair: str, submit_dir="submit_dir") -> None:
-        report = {}
         test_judgements = self.load_judgements("test")
         submitted_metrics = [m for m in self.metrics if m.label in submitted_metrics_labels]
         if not self.reference_free:

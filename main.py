@@ -1,16 +1,12 @@
 import os
-from itertools import product
 import logging
-from typing import Tuple, Set, Optional, List
+from typing import Tuple, Set, Optional
 import sys
+import warnings
 
-import pandas as pd
-import seaborn as sns
 import transformers
-from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from bertscore import BERTScore
-from common import Evaluator, Report
+from common import Evaluator
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
 from scm import SCM, ContextualSCM, DecontextualizedSCM
@@ -125,17 +121,16 @@ def main(firstn: Optional[float] = None,
                                             lang_pair=lang_pair)
 
 
-
 if __name__ == '__main__':
-    # os.environ['TOKENIZERS_PARALLELISM'] = "false"
-    # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-    # transformers.logging.set_verbosity_error()
-    # try:
-    #     import tensorflow as tf
-    #     tf.get_logger().setLevel('ERROR')
-    # except ImportError:
-    #     pass
-    # logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
+    os.environ['TOKENIZERS_PARALLELISM'] = "false"
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+    transformers.logging.set_verbosity_error()
+    try:
+        import tensorflow as tf
+        tf.get_logger().setLevel('ERROR')
+    except ImportError:
+        pass
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
     parameters = dict()
     for arg in sys.argv[1:]:
@@ -153,7 +148,7 @@ if __name__ == '__main__':
         else:
             raise ValueError(f'Unrecognized command-line argument: {arg}')
 
-    # with warnings.catch_warnings():
-    #     warnings.filterwarnings('ignore', category=UserWarning)
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
 
     main(**parameters)
