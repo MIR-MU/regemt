@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict, Optional, Any, Union, Literal
+from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
 from statistics import mean
 from itertools import repeat, chain
 import logging
@@ -111,8 +111,8 @@ class Judgements:
         return Judgements(src_texts, references, translations, scores, metadata, shuffle=False, make_unique=False)
 
     def split(self, *other_lists: List, ratio: Optional[float] = None,
-              method: Literal['simple', 'sources'] = 'sources') -> Tuple[Tuple['Judgements', List[List]],
-                                                                         Tuple['Judgements', List[List]]]:
+              method: 'str' = 'sources') -> Tuple[Tuple['Judgements', List[List]],
+                                                  Tuple['Judgements', List[List]]]:
         for other_list in other_lists:
             assert len(other_list) == len(self)
 
