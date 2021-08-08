@@ -93,19 +93,25 @@ class Judgements:
         train_unique_src_texts = set(unique_src_texts[:pivot])
         test_unique_src_texts = set(unique_src_texts[pivot:])
 
-        train_src_texts, train_references, train_translations, train_scores, train_other_lists = \
-            [], [] if self.references else None, [], [], [[] for other_list in other_lists]
-        test_src_texts, test_references, test_translations, test_scores, test_other_lists = \
-            [], [] if self.references else None, [], [], [[] for other_list in other_lists]
-        for row in zip(self.src_texts, self.references or repeat(None), self.translations, self.scores, *other_lists):
-            src_text, reference, translation, score, *other_elements = row
+        train_src_texts, train_references, train_translations, train_scores, train_metadata, train_other_lists = \
+            [], [] if self.references else None, [], [] if self.scores else None, [] if self.metadata else None, \
+            [[] for other_list in other_lists]
+        test_src_texts, test_references, test_translations, test_scores, test_metadata, test_other_lists = \
+            [], [] if self.references else None, [], [] if self.scores else None, [] if self.metadata else None, \
+            [[] for other_list in other_lists]
+        for row in zip(self.src_texts, self.references or repeat(None), self.translations,
+                       self.scores or repeat(None), self.metadata or repeat(None), *other_lists):
+            src_text, reference, translation, score, metadatum, *other_elements = row
             assert src_text in train_unique_src_texts | test_unique_src_texts
             if src_text in train_unique_src_texts:
                 train_src_texts.append(src_text)
                 if train_references is not None:
                     train_references.append(list(reference))
                 train_translations.append(translation)
-                train_scores.append(score)
+                if train_scores is not None:
+                    train_scores.append(score)
+                if train_metadata is not None:
+                    train_metadata.append(metadatum)
                 for train_other_list, other_element in zip(train_other_lists, other_elements):
                     train_other_list.append(other_element)
             else:
@@ -113,14 +119,17 @@ class Judgements:
                 if test_references is not None:
                     test_references.append(list(reference))
                 test_translations.append(translation)
-                test_scores.append(score)
+                if test_scores is not None:
+                    test_scores.append(score)
+                if test_metadata is not None:
+                    test_metadata.append(metadatum)
                 for test_other_list, other_element in zip(test_other_lists, other_elements):
                     test_other_list.append(other_element)
 
         train_judgements = Judgements(train_src_texts, train_references, train_translations, train_scores,
-                                      shuffle=False, make_unique=False)
+                                      train_metadata, shuffle=False, make_unique=False)
         test_judgements = Judgements(test_src_texts, test_references, test_translations, test_scores,
-                                     shuffle=False, make_unique=False)
+                                     test_metadata, shuffle=False, make_unique=False)
         assert len(train_judgements) + len(test_judgements) == len(self)
         assert not train_judgements.overlaps(test_judgements)
 
@@ -140,6 +149,7 @@ class Judgements:
             self.src_texts == other.src_texts,
             self.references == other.references,
             self.translations == other.translations,
+            self.metadata == other.metadata,
             self.scores == other.scores,
         ])
 
