@@ -43,6 +43,5 @@ Unit tests:
     - python -m main --fast
   artifacts:
     paths:
-      - heatmap-*.png
-      - metric-*.png
+      - submit_dir/*
     expire_in: 1 week

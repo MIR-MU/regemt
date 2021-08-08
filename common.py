@@ -203,6 +203,7 @@ class AugmentedCorpus:
 
 
 class Evaluator:
+    submission_judgement_types = ("challengeset", "florestest2021", "newstest2021", "tedtalks")
 
     def __init__(self, data_dir: str, lang_pair: str, metrics: List[Union[Metric, ReferenceFreeMetric]],
                  judgements_type: str, firstn: Optional[int] = 100, reference_free: bool = False):
@@ -395,7 +396,7 @@ class Evaluator:
                 references = None
                 translations = df["translation"].tolist()
                 scores = df["judgements"].tolist()
-            elif self.judgements_type in ["challengeset", "florestest2021", "newstest2021", "tedtalks"]:
+            elif self.judgements_type in self.submission_judgement_types:
                 if split == "train":
                     orig_type = self.judgements_type
                     # a bit of a hack, this needs to be refactored
@@ -482,7 +483,7 @@ class Evaluator:
         return report
 
     def format_print_metric_output(self, metric: Metric, scores: List[float], judgements: Judgements,
-                                   lang_pair: str, submit_dir: str, stype: str = "seg"):
+                                   submit_dir: str, stype: str = "seg"):
         report_fpath = os.path.join(submit_dir, "%s-%s.%s.score" % ("src" if self.reference_free else "ref",
                                                                     metric.label, stype))
         print("Generating report of metric %s to %s" % (metric.label, report_fpath))
@@ -494,7 +495,7 @@ class Evaluator:
         with open(report_fpath, "a+") as out_f:
             firstrow = True
             for (row_i, ref_author, sys_name), score in zip(judgements.metadata, scores):
-                row = "\t".join([metric.label, lang_pair, self.judgements_type, ref_author,
+                row = "\t".join([metric.label, self.lang_pair, self.judgements_type, ref_author,
                                  sys_name, str(row_i), str(score)])
                 if firstrow:
                     print("Expected: %s" % validation.COLFORMAT[stype])
@@ -507,14 +508,14 @@ class Evaluator:
             print("Output format validated")
 
     def submit_and_report(self, submitted_metrics_labels: List[str],
-                          lang_pair: str, submit_dir="submit_dir") -> None:
+                          submit_dir="submit_dir") -> None:
         test_judgements = self.load_judgements("test")
         submitted_metrics = [m for m in self.metrics if m.label in submitted_metrics_labels]
         if not self.reference_free:
             for metric in submitted_metrics:
                 scores = [float(val) for val in metric.compute(test_judgements)]
-                self.format_print_metric_output(metric, scores, test_judgements, lang_pair, submit_dir)
+                self.format_print_metric_output(metric, scores, test_judgements, submit_dir)
         else:
             for metric in [m for m in submitted_metrics if isinstance(m, ReferenceFreeMetric)]:
                 scores = [float(val) for val in metric.compute_ref_free(test_judgements)]
-                self.format_print_metric_output(metric, scores, test_judgements, lang_pair, submit_dir)
+                self.format_print_metric_output(metric, scores, test_judgements, submit_dir)

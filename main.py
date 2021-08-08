@@ -117,8 +117,10 @@ def main(firstn: Optional[float] = None,
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
                                       judgements_type=judgements_type,
                                       reference_free=reference_free, firstn=firstn)
-                evaluator.submit_and_report(submitted_metrics_labels=["Regression", "Regression_baseline", "WMD"],
-                                            lang_pair=lang_pair)
+                if judgements_type in evaluator.submission_judgement_types:
+                    evaluator.submit_and_report(submitted_metrics_labels=["Regression", "Regression_baseline", "WMD"])
+                else:
+                    evaluator.evaluate()
 
 
 if __name__ == '__main__':
@@ -139,6 +141,7 @@ if __name__ == '__main__':
                 **parameters,
                 **{
                     'firstn': 100,
+                    'judgements_types': ('MQM', ),
                     'src_langs': {'en'},
                     'enable_compositionality': False,
                     'enable_sota_metrics': False,
