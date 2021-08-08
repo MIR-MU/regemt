@@ -9,7 +9,7 @@ import seaborn as sns
 import transformers
 from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-# from bertscore import BERTScore
+from bertscore import BERTScore
 from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
@@ -64,16 +64,16 @@ def main(firstn: Optional[float] = None,
                     return metric
 
                 if enable_sota_metrics:
-                    # from prism_metric import PrismMetric
-                    # from comet_metric import Comet
-                    # metrics += [
-                    #     make_metric(Comet),
-                    #     make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
-                    # ]
+                    from prism_metric import PrismMetric
+                    from comet_metric import Comet
+                    metrics += [
+                        make_metric(Comet),
+                        make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                    ]
                     pass
 
                 metrics += [
-                    # make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
+                    make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
                     make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
                 ]
 
@@ -83,8 +83,8 @@ def main(firstn: Optional[float] = None,
                 metrics += [
                     make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
                     make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
-                    # make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
-                    # make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
+                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=False, reference_free=reference_free),
+                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True, reference_free=reference_free),
                 ]
 
                 if enable_fasttext_metrics:
