@@ -1,6 +1,6 @@
 import abc
 import os
-from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
+from typing import List, Tuple, Iterable, Dict, Optional, Any, Union, Literal
 from statistics import mean
 from itertools import repeat, chain
 import logging
@@ -83,13 +83,66 @@ class Judgements:
         metadata = list(self.metadata[indexes]) if self.metadata is not None else None
         return Judgements(src_texts, references, translations, scores, metadata, shuffle=False, make_unique=False)
 
-    def split(self, *other_lists: List, split_ratio: float = 0.8) -> Tuple[Tuple['Judgements', List[List]],
-                                                                           Tuple['Judgements', List[List]]]:
+    def __add__(self, other: 'Judgements') -> 'Judgements':
+        if not isinstance(other, Judgements):
+            return NotImplemented
+        src_texts = list(chain(self.src_texts, other.src_texts))
+
+        if self.references is not None or other.references is not None:
+            assert self.references is not None and other.references is not None
+            references = list(chain(self.references, other.references))
+        else:
+            references = None
+
+        translations = list(chain(self.translations, other.translations))
+
+        if self.scores is not None or other.scores is not None:
+            assert self.scores is not None and other.scores is not None
+            scores = list(chain(self.scores, other.scores))
+        else:
+            scores = None
+
+        if self.metadata is not None or other.metadata is not None:
+            assert self.metadata is not None and other.metadata is not None
+            metadata = list(chain(self.metadata, other.metadata))
+        else:
+            metadata = None
+
+        return Judgements(src_texts, references, translations, scores, metadata, shuffle=False, make_unique=False)
+
+    def split(self, *other_lists: List, ratio: Optional[float] = None,
+              method: Literal['simple', 'sources'] = 'sources') -> Tuple[Tuple['Judgements', List[List]],
+                                                                         Tuple['Judgements', List[List]]]:
         for other_list in other_lists:
             assert len(other_list) == len(self)
 
+        if method == 'simple':
+            return self._simple_split(list(other_lists), ratio)
+        elif method == 'sources':
+            return self._split_by_sources(list(other_lists), ratio)
+        else:
+            raise ValueError(f'Specified unknown {method} method')
+
+    def _simple_split(self, other_lists: List[List], ratio: Optional[float] = None):
+        ratio: float = ratio if ratio is not None else 0.5
+
+        pivot = int(round(len(self) * ratio))
+
+        train_judgements = self[:pivot]
+        test_judgements = self[pivot:]
+
+        train_other_lists = [other_list[:pivot] for other_list in other_lists]
+        test_other_lists = [other_list[pivot:] for other_list in other_lists]
+
+        assert train_judgements + test_judgements == self
+
+        return (train_judgements, train_other_lists), (test_judgements, test_other_lists)
+
+    def _split_by_sources(self, other_lists: List[List], ratio: Optional[float] = None):
+        ratio: float = ratio if ratio is not None else 0.8
+
         unique_src_texts = sorted(set(self.src_texts))
-        pivot = int(round(len(unique_src_texts) * split_ratio))
+        pivot = int(round(len(unique_src_texts) * ratio))
         train_unique_src_texts = set(unique_src_texts[:pivot])
         test_unique_src_texts = set(unique_src_texts[pivot:])
 
@@ -130,7 +183,7 @@ class Judgements:
                                       train_metadata, shuffle=False, make_unique=False)
         test_judgements = Judgements(test_src_texts, test_references, test_translations, test_scores,
                                      test_metadata, shuffle=False, make_unique=False)
-        assert len(train_judgements) + len(test_judgements) == len(self)
+        assert len(train_judgements + test_judgements) == len(self)
         assert not train_judgements.overlaps(test_judgements)
 
         return (train_judgements, train_other_lists), (test_judgements, test_other_lists)
