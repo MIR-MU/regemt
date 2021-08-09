@@ -269,13 +269,14 @@ class Evaluator:
     submission_judgement_types = ("challengeset", "florestest2021", "newstest2021", "tedtalks")
 
     def __init__(self, data_dir: str, lang_pair: str, metrics: List[Union[Metric, ReferenceFreeMetric]],
-                 judgements_type: str, firstn: Optional[int] = 100, reference_free: bool = False):
+                 judgements_type: str, firstn: Optional[int] = 100, reference_free: bool = False, human: bool = False):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
         self.judgements_type = judgements_type
         self.firstn = firstn
         self.reference_free = reference_free
+        self.human = human
 
         train_judgements = self.load_judgements("train")
         for metric in self.metrics:
@@ -313,6 +314,30 @@ class Evaluator:
                 "https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS\n"
                 "and put its root into data_dir, getting data_dir/WMT21-data")
 
+    def _hypotheses_from_judgements(self, references: List[List[str]]) \
+            -> Tuple[List[str], List[List[str]], List[str], List[List[Any]]]:
+        # For languages with two references available, you will need to score each reference against the other
+        assert self.reference_free
+
+        out_sources, out_references, out_translations, out_meta = [], [], [], []
+
+        for i, ref_pair in enumerate(references):
+            if len(ref_pair) != 2:
+                continue
+
+            for ref_a, ref_b in ref_pair:
+                out_sources.append(ref_a)
+                out_translations.append(ref_b)
+                out_meta.append([i, "ref-A", "ref-B"])
+                out_references.append(None)
+
+                out_sources.append(ref_b)
+                out_translations.append(ref_a)
+                out_meta.append([i, "ref-B", "ref-A"])
+                out_references.append(None)
+
+        return out_sources, out_references, out_translations, out_meta
+
     def load_submission_judgements(self, judgements_type: str, lang_pair: str):
         data_dir = "data_dir/WMT21-data"
 
@@ -339,6 +364,10 @@ class Evaluator:
             except FileNotFoundError:
                 print("Reference %s for %s:%s:%s:%s not found. This can be ok, but better check"
                       % (possible_ref_name, judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
+
+        if self.human:
+            # judgements composed of human cross-references are requested by setting self.human to True
+            return self._hypotheses_from_judgements(references)
 
         sys_dir = os.path.join(data_dir, "system-outputs", "%s" % judgements_type, lang_pair)
         system_files = os.listdir(sys_dir)
