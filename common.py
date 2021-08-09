@@ -567,8 +567,11 @@ class Evaluator:
 
                 out_f.write(row + "\n")
 
-        if validation.validate_metric_output("data_dir/WMT21-data", submit_dir, metric.label, self.reference_free):
-            print("Output format validated")
+        try:
+            if validation.validate_metric_output("data_dir/WMT21-data", submit_dir, metric.label, self.reference_free):
+                print("Output format validated")
+        except ValueError:
+            pass
 
     def submit_and_report(self, submitted_metrics_labels: List[str],
                           submit_dir="submit_dir") -> None:
