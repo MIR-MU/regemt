@@ -15,8 +15,6 @@ from ensemble import Regression
 
 LOGGER = logging.getLogger(__name__)
 
-evaluator = None
-
 
 def main(firstn: Optional[float] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
@@ -28,7 +26,6 @@ def main(firstn: Optional[float] = None,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False):
-    global evaluator
     for human in humans:
         print("Evaluating %shuman systems" % ('' if human else 'non-'))
 
