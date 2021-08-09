@@ -314,8 +314,7 @@ class Evaluator:
                 "https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS\n"
                 "and put its root into data_dir, getting data_dir/WMT21-data")
 
-    def _hypotheses_from_judgements(self, references: List[List[str]]) \
-            -> Tuple[List[str], List[List[str]], List[str], List[List[Any]]]:
+    def _hypotheses_from_judgements(self, references: List[List[str]]):
         # For languages with two references available, you will need to score each reference against the other
         assert self.reference_free
 
