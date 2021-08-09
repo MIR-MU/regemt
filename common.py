@@ -297,7 +297,8 @@ class Evaluator:
         elif judgements_type == "florestest2021":
             return ["bn-hi", "hi-bn", "xh-zu", "zu-xh"]
         elif judgements_type == "newstest2021":
-            return ["en-de"]
+            return ["cs-en", "de-en", "de-fr", "en-cs", "en-de", "en-ha", "en-is", "en-ja", "en-ru", "en-zh", "fr-de",
+                    "ha-en", "is-en", "ja-en", "ru-en", "zh-en"]
         elif judgements_type == "tedtalks":
             return ["en-de", "en-ru", "zh-en"]
         else:
