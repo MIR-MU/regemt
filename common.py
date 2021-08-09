@@ -278,7 +278,7 @@ class Evaluator:
         self.reference_free = reference_free
         self.human = human
 
-        train_judgements = self.load_judgements("test")
+        train_judgements = self.load_judgements("train")
         for metric in self.metrics:
             metric.fit(train_judgements)
 
