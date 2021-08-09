@@ -20,7 +20,7 @@ evaluator = None
 
 def main(firstn: Optional[float] = None,
          reference_frees: Tuple[bool, ...] = (False, ),
-         judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'newstest2021', 'tedtalks'),
+         judgements_types: Tuple[str, ...] = Evaluator.submission_judgement_types,
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
          enable_compositionality: bool = True,
@@ -34,7 +34,8 @@ def main(firstn: Optional[float] = None,
             if judgements_type == 'catastrophic' and not reference_free:
                 continue
 
-            print("Generating WMT21 submission")
+            if judgements_type in Evaluator.submission_judgement_types:
+                print("Generating WMT21 submission")
 
             langs = Evaluator.langs_for_judgements(judgements_type)
 
