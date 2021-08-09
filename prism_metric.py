@@ -4,7 +4,7 @@ import tarfile
 from urllib.request import urlretrieve
 from functools import lru_cache
 
-from prism.prism import Prism
+from prism.prism import Prism, MODELS
 from common import ReferenceFreeMetric, Judgements
 
 
@@ -45,6 +45,10 @@ class PrismMetric(ReferenceFreeMetric):
         else:
             return self.model.score(cand=judgements.translations, ref=[rs[0] for rs in judgements.references],
                                     segment_scores=True)
+
+    @staticmethod
+    def supports(lang: str) -> bool:
+        return lang in MODELS['8412b2044da4b9b2c0a8ce87b305d0d1']['langs']
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, PrismMetric):
