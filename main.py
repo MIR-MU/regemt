@@ -1,12 +1,16 @@
 import os
+from itertools import product
 import logging
-from typing import Tuple, Set, Optional
+from typing import Tuple, Set, Optional, List
 import sys
-import warnings
 
+import pandas as pd
+import seaborn as sns
 import transformers
+from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from bertscore import BERTScore
-from common import Evaluator
+from common import Evaluator, Report
 from conventional_metrics import BLEU, METEOR
 from ood_metrics import SyntacticCompositionality
 from scm import SCM, ContextualSCM, DecontextualizedSCM
@@ -20,7 +24,7 @@ evaluator = None
 
 def main(firstn: Optional[float] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = Evaluator.submission_judgement_types,
+         judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'newstest2021', 'tedtalks'),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
          enable_compositionality: bool = True,
@@ -117,8 +121,10 @@ def main(firstn: Optional[float] = None,
 
                 evaluator = Evaluator("data_dir", lang_pair, metrics,
                                       judgements_type=judgements_type,
+                                      human=human,
                                       reference_free=reference_free, firstn=firstn)
                 if judgements_type in evaluator.submission_judgement_types:
+                    print("submit_and_report")
                     evaluator.submit_and_report(submitted_metrics_labels=["Regression", "Regression_baseline", "WMD"])
                 else:
                     evaluator.evaluate()
@@ -154,4 +160,4 @@ if __name__ == '__main__':
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=UserWarning)
-        main(**parameters)
+    main(**parameters)

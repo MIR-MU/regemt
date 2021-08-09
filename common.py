@@ -608,6 +608,10 @@ class Evaluator:
     def submit_and_report(self, submitted_metrics_labels: List[str],
                           submit_dir="submit_dir") -> None:
         test_judgements = self.load_judgements("test")
+        if not test_judgements:
+            print("Test judgements are empty, I do not produce any output for %s:%s:human=%s" %
+                  (self.judgements_type, self.lang_pair, self.human))
+            return
         submitted_metrics = [m for m in self.metrics if m.label in submitted_metrics_labels]
         if not self.reference_free:
             for metric in submitted_metrics:
