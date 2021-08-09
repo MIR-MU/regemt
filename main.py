@@ -20,7 +20,7 @@ evaluator = None
 
 def main(firstn: Optional[float] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
-         judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'newstest2021', 'tedtalks'),
+         judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'tedtalks', 'newstest2021'),
          humans: Tuple[bool, ...] = (True, False),
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
