@@ -16,6 +16,7 @@ from ood_metrics import SyntacticCompositionality
 from scm import SCM, ContextualSCM, DecontextualizedSCM
 from wmd import WMD, ContextualWMD, DecontextualizedWMD
 from ensemble import Regression
+import warnings
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +31,8 @@ def main(firstn: Optional[float] = None,
          enable_compositionality: bool = True,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
-         enable_contextual_scm: bool = False):
+         enable_contextual_scm: bool = False,
+         human: bool = False):
     global evaluator
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
