@@ -77,6 +77,10 @@ class DecontextualizedWMD(ReferenceFreeMetric):
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
+        (judgements_head, []), (judgements_tail, []) = judgements.split(method='simple')
+        return self._compute(judgements_head) + self._compute(judgements_tail)
+
+    def _compute(self, judgements: Judgements):
         if self.reference_free:
             ref_corpus, ref_embs = self.embedder.tokenize_embed(list(judgements.src_texts))
         else:
