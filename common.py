@@ -320,20 +320,16 @@ class Evaluator:
 
         out_sources, out_references, out_translations, out_meta = [], None, [], []
 
-        for i, ref_pair in enumerate(references):
-            if len(ref_pair) != 2:
-                continue
+        for i, (ref_a, ref_b) in enumerate(references):
+            assert ref_a
+            assert ref_b
+            out_sources.append(ref_a)
+            out_translations.append(ref_b)
+            out_meta.append([i, "ref-A", "ref-B"])
 
-            for ref_a, ref_b in ref_pair:
-                assert ref_a
-                assert ref_b
-                out_sources.append(ref_a)
-                out_translations.append(ref_b)
-                out_meta.append([i, "ref-A", "ref-B"])
-
-                out_sources.append(ref_b)
-                out_translations.append(ref_a)
-                out_meta.append([i, "ref-B", "ref-A"])
+            out_sources.append(ref_b)
+            out_translations.append(ref_a)
+            out_meta.append([i, "ref-B", "ref-A"])
 
         return out_sources, out_references, out_translations, out_meta
 
@@ -352,16 +348,17 @@ class Evaluator:
         for possible_ref_name in ["ref-A", "ref-B"]:
             references_path = os.path.join(data_dir, "references", "%s.%s.ref.%s.%s"
                                            % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1]))
+            err_msg = "%s.%s.ref.%s.%s" % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1])
             try:
                 with open(references_path) as ref:
+                    ref_new_all = ref.readlines()
                     if not references:
-                        assert all([[r] for r in ref]), "%s.%s.ref.%s.%s" \
-                        % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1])
-                        references = [[r] for r in ref]
+                        assert all([[r] for r in ref_new_all]), err_msg
+                        references = [[r] for r in ref_new_all]
                     else:
-                        for r_prevs, r_new in zip(references, ref):
-                            assert r_new, "%s.%s.ref.%s.%s" \
-                            % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1])
+                        assert len(references) == len(ref_new_all), err_msg
+                        for r_prevs, r_new in zip(references, ref_new_all):
+                            assert r_new, err_msg
                             r_prevs.append(r_new)
 
             except FileNotFoundError:
