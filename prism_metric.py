@@ -14,7 +14,12 @@ class PrismMetric(ReferenceFreeMetric):
 
     label = "Prism"
 
-    def __init__(self, tgt_lang: str, reference_free=False, model_dir="prism/model_dir", device="cuda:1"):
+    def __init__(self, tgt_lang: str, src_lang: str, reference_free=False,
+                 model_dir="prism/model_dir", device="cuda:1"):
+        assert self.__class__.supports(tgt_lang)
+        if reference_free:
+            assert self.__class__.supports(src_lang)
+
         model_path = Path(model_dir)
 
         if not model_path.exists():

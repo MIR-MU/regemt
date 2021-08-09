@@ -65,7 +65,8 @@ def main(firstn: Optional[float] = None,
                     from comet_metric import Comet
                     metrics += [
                         make_metric(Comet),
-                        make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                        make_metric(PrismMetric, src_lang=src_lang, tgt_lang=tgt_lang,
+                                    reference_free=reference_free),
                     ]
                     pass
 
