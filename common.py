@@ -314,6 +314,30 @@ class Evaluator:
                 "https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS\n"
                 "and put its root into data_dir, getting data_dir/WMT21-data")
 
+    def _hypotheses_from_judgements(self, references: List[List[str]]) \
+            -> Tuple[List[str], List[List[str]], List[str], List[List[Any]]]:
+        # For languages with two references available, you will need to score each reference against the other
+        assert self.reference_free
+
+        out_sources, out_references, out_translations, out_meta = [], [], [], []
+
+        for i, ref_pair in enumerate(references):
+            if len(ref_pair) != 2:
+                continue
+
+            for ref_a, ref_b in ref_pair:
+                out_sources.append(ref_a)
+                out_translations.append(ref_b)
+                out_meta.append([i, "ref-A", "ref-B"])
+                out_references.append(None)
+
+                out_sources.append(ref_b)
+                out_translations.append(ref_a)
+                out_meta.append([i, "ref-B", "ref-A"])
+                out_references.append(None)
+
+        return out_sources, out_references, out_translations, out_meta
+
     def _hypotheses_from_judgements(self, references: List[List[str]]):
         # For languages with two references available, you will need to score each reference against the other
         assert self.reference_free
