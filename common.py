@@ -319,7 +319,7 @@ class Evaluator:
         # For languages with two references available, you will need to score each reference against the other
         assert self.reference_free
 
-        out_sources, out_references, out_translations, out_meta = [], [], [], []
+        out_sources, out_references, out_translations, out_meta = [], None, [], []
 
         for i, ref_pair in enumerate(references):
             if len(ref_pair) != 2:
@@ -329,12 +329,10 @@ class Evaluator:
                 out_sources.append(ref_a)
                 out_translations.append(ref_b)
                 out_meta.append([i, "ref-A", "ref-B"])
-                out_references.append(None)
 
                 out_sources.append(ref_b)
                 out_translations.append(ref_a)
                 out_meta.append([i, "ref-B", "ref-A"])
-                out_references.append(None)
 
         return out_sources, out_references, out_translations, out_meta
 
