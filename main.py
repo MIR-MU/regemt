@@ -153,5 +153,4 @@ if __name__ == '__main__':
 
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore', category=UserWarning)
-
-    main(**parameters)
+        main(**parameters)
