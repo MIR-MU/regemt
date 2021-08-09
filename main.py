@@ -19,7 +19,7 @@ evaluator = None
 
 
 def main(firstn: Optional[float] = None,
-         reference_frees: Tuple[bool, ...] = (False, ),
+         reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = Evaluator.submission_judgement_types,
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
