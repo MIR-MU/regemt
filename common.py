@@ -278,7 +278,7 @@ class Evaluator:
         self.reference_free = reference_free
         self.human = human
 
-        train_judgements = self.load_judgements("train")
+        train_judgements = self.load_judgements("test")
         for metric in self.metrics:
             metric.fit(train_judgements)
 
@@ -297,8 +297,7 @@ class Evaluator:
         elif judgements_type == "florestest2021":
             return ["bn-hi", "hi-bn", "xh-zu", "zu-xh"]
         elif judgements_type == "newstest2021":
-            return ["cs-en", "de-en", "de-fr", "en-cs", "en-de", "en-ha", "en-is", "en-ja", "en-ru", "en-zh", "fr-de",
-                    "ha-en", "is-en", "ja-en", "ru-en", "zh-en"]
+            return ["en-de"]
         elif judgements_type == "tedtalks":
             return ["en-de", "en-ru", "zh-en"]
         else:
@@ -320,7 +319,10 @@ class Evaluator:
 
         out_sources, out_references, out_translations, out_meta = [], None, [], []
 
-        for i, (ref_a, ref_b) in enumerate(references):
+        for i, ref_pair in enumerate(references):
+            if len(ref_pair) < 2:
+                continue
+            ref_a, ref_b = ref_pair
             assert ref_a
             assert ref_b
             out_sources.append(ref_a)
