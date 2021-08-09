@@ -269,15 +269,16 @@ class Evaluator:
     submission_judgement_types = ("challengeset", "florestest2021", "newstest2021", "tedtalks")
 
     def __init__(self, data_dir: str, lang_pair: str, metrics: List[Union[Metric, ReferenceFreeMetric]],
-                 judgements_type: str, firstn: Optional[int] = 100, reference_free: bool = False):
+                 judgements_type: str, firstn: Optional[int] = 100, reference_free: bool = False, human: bool = False):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
         self.judgements_type = judgements_type
         self.firstn = firstn
         self.reference_free = reference_free
+        self.human = human
 
-        train_judgements = self.load_judgements("train")
+        train_judgements = self.load_judgements("test")
         for metric in self.metrics:
             metric.fit(train_judgements)
 
@@ -313,6 +314,28 @@ class Evaluator:
                 "https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS\n"
                 "and put its root into data_dir, getting data_dir/WMT21-data")
 
+    def _hypotheses_from_judgements(self, references: List[List[str]]):
+        # For languages with two references available, you will need to score each reference against the other
+        assert self.reference_free
+
+        out_sources, out_references, out_translations, out_meta = [], None, [], []
+
+        for i, ref_pair in enumerate(references):
+            if len(ref_pair) < 2:
+                continue
+            ref_a, ref_b = ref_pair
+            assert ref_a
+            assert ref_b
+            out_sources.append(ref_a)
+            out_translations.append(ref_b)
+            out_meta.append([i, "ref-A", "ref-B"])
+
+            out_sources.append(ref_b)
+            out_translations.append(ref_a)
+            out_meta.append([i, "ref-B", "ref-A"])
+
+        return out_sources, out_references, out_translations, out_meta
+
     def load_submission_judgements(self, judgements_type: str, lang_pair: str):
         data_dir = "data_dir/WMT21-data"
 
@@ -328,17 +351,26 @@ class Evaluator:
         for possible_ref_name in ["ref-A", "ref-B"]:
             references_path = os.path.join(data_dir, "references", "%s.%s.ref.%s.%s"
                                            % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1]))
+            err_msg = "%s.%s.ref.%s.%s" % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1])
             try:
                 with open(references_path) as ref:
+                    ref_new_all = ref.readlines()
                     if not references:
-                        references = [[r] for r in ref]
+                        assert all([[r] for r in ref_new_all]), err_msg
+                        references = [[r] for r in ref_new_all]
                     else:
-                        for r_prevs, r_new in zip(references, ref):
+                        assert len(references) == len(ref_new_all), err_msg
+                        for r_prevs, r_new in zip(references, ref_new_all):
+                            assert r_new, err_msg
                             r_prevs.append(r_new)
 
             except FileNotFoundError:
                 print("Reference %s for %s:%s:%s:%s not found. This can be ok, but better check"
                       % (possible_ref_name, judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[0]))
+
+        if self.human:
+            # judgements composed of human cross-references are requested by setting self.human to True
+            return self._hypotheses_from_judgements(references)
 
         sys_dir = os.path.join(data_dir, "system-outputs", "%s" % judgements_type, lang_pair)
         system_files = os.listdir(sys_dir)
@@ -576,6 +608,10 @@ class Evaluator:
     def submit_and_report(self, submitted_metrics_labels: List[str],
                           submit_dir="submit_dir") -> None:
         test_judgements = self.load_judgements("test")
+        if not test_judgements:
+            print("Test judgements are empty, I do not produce any output for %s:%s:human=%s" %
+                  (self.judgements_type, self.lang_pair, self.human))
+            return
         submitted_metrics = [m for m in self.metrics if m.label in submitted_metrics_labels]
         if not self.reference_free:
             for metric in submitted_metrics:
