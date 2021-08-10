@@ -283,7 +283,7 @@ class Evaluator:
             if not test_judgements:
                 print("Test judgements are empty, I skip metric fitting for %s:%s:human=%s" %
                       (self.judgements_type, self.lang_pair, self.human))
-            return
+                return
 
         train_judgements = self.load_judgements("train")
 
