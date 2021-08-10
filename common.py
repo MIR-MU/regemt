@@ -278,7 +278,15 @@ class Evaluator:
         self.reference_free = reference_free
         self.human = human
 
+        if human:
+            test_judgements = self.load_judgements("test")
+            if not test_judgements:
+                print("Test judgements are empty, I skip metric fitting for %s:%s:human=%s" %
+                      (self.judgements_type, self.lang_pair, self.human))
+            return
+
         train_judgements = self.load_judgements("train")
+
         for metric in self.metrics:
             metric.fit(train_judgements)
 
