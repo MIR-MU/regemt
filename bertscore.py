@@ -15,12 +15,13 @@ class BERTScore(ReferenceFreeMetric):
         if reference_free:
             # force to use multilingual model, presume that both source and target langs are supported
             self.scorer = BERTScorer(model_type="bert-base-multilingual-cased")
+            self.tgt_lang = 'multi'
         else:
             # infer used model from target language -> language of both reference and translation
             self.scorer = BERTScorer(lang=tgt_lang, rescale_with_baseline=True)
+            self.tgt_lang = tgt_lang
 
         self.reference_free = reference_free
-        self.tgt_lang = tgt_lang
         self.batch_size = batch_size
 
     @lru_cache(maxsize=None)
@@ -50,4 +51,4 @@ class BERTScore(ReferenceFreeMetric):
         ])
 
     def __hash__(self) -> int:
-        return hash((self.reference_free, 'multi' if self.reference_free else self.tgt_lang, self.batch_size))
+        return hash((self.reference_free, self.tgt_lang, self.batch_size))
