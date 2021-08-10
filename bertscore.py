@@ -50,4 +50,4 @@ class BERTScore(ReferenceFreeMetric):
         ])
 
     def __hash__(self) -> int:
-        return hash((self.reference_free, self.tgt_lang, self.batch_size))
+        return hash((self.reference_free, 'multi' if self.reference_free else self.tgt_lang, self.batch_size))
