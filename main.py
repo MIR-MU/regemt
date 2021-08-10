@@ -130,7 +130,6 @@ def main(firstn: Optional[float] = None,
                                           judgements_type=judgements_type, human=human,
                                           reference_free=reference_free, firstn=firstn)
                     if judgements_type in evaluator.submission_judgement_types:
-                        print("submit_and_report")
                         evaluator.submit_and_report(submitted_metrics_labels=["Regression", "Regression_baseline"])
                     else:
                         evaluator.evaluate()
