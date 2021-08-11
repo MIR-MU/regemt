@@ -14,4 +14,5 @@ RUN --mount=type=cache,target=/root/.cache/pip --mount=type=secret,id=netrc,dst=
 
 COPY ../mt-eval/ /app/mt-eval/
 
+WORKDIR /app/mt-eval
 CMD ["python3.8", "-m", "main"]

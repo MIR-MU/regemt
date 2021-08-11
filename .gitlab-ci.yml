@@ -5,17 +5,17 @@ cache:
   - ~/.cache/pip/
 
 stages:
-  - build
+#  - build
   - check
 
-Docker build:
-  stage: check
-  image: docker:20
-  tags:
-    - shared-fi
-  script:
-    - docker build -t regemt:latest
-    - docker push regemt:latest
+#Docker build:
+#  stage: build
+#  image: docker:20
+#  tags:
+#    - shared-fi
+#  script:
+#    - docker build -t regemt:latest
+#    - docker push regemt:latest
 
 Style check:
   stage: check

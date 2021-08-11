@@ -57,7 +57,7 @@ class ContextualEmbedder:
     ramcaches: Dict[Language, Dict[Text, Tuple[Tokens, Embeddings]]] = dict()
     scorers: Dict[Language, BERTScorer] = dict()
 
-    def __init__(self, lang: str, use_diskcache: bool = True, use_ramcache: bool = False, reference_free: bool = False):
+    def __init__(self, lang: str, use_diskcache: bool = False, use_ramcache: bool = True, reference_free: bool = False):
         self.lang = lang if not reference_free else "multi"  # lang other than en and zh retrieve multilingual model
         self.vector_size = self.scorer._model.config.hidden_size
         self.use_diskcache = use_diskcache
