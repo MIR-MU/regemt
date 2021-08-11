@@ -599,7 +599,10 @@ class Evaluator:
             for (row_i, ref_author, sys_name), score in zip(judgements.metadata, scores):
                 row = "\t".join([metric.label, self.lang_pair, self.judgements_type,
                                  'src' if self.reference_free and not self.human else ref_author,
-                                 sys_name, str(row_i), str(score)])
+                                 sys_name[4:] if (
+                                     sys_name.startswith('hyp.') or
+                                     sys_name.startswith('ref.')
+                                 ) else sys_name, str(row_i + 1), str(score)])
                 if firstrow:
                     print("Expected: %s" % validation.COLFORMAT[stype])
                     print("Actual: %s" % row)
