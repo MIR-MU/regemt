@@ -402,7 +402,7 @@ class Evaluator:
                 for i, (src, refs, trans) in enumerate(zip(sources, references, sys_translations)):
                     for ref_name, ref in zip(["ref-A", "ref-B"], refs):
                         all_sources.append(src)
-                        all_refs.append(ref)
+                        all_refs.append([ref])
                         all_translations.append(trans)
 
                         meta.append([i, ref_name, sys_name])
