@@ -6,9 +6,19 @@ cache:
 
 stages:
   - build
+  - check
+
+Docker build:
+  stage: check
+  image: docker:20
+  tags:
+    - shared-fi
+  script:
+    - docker build -t regemt:latest
+    - docker push regemt:latest
 
 Style check:
-  stage: build
+  stage: check
   tags:
     - shared-fi
   before_script:
@@ -20,7 +30,7 @@ Style check:
     - flake8
 
 Type check:
-  stage: build
+  stage: check
   tags:
     - shared-fi
   before_script:
@@ -32,7 +42,7 @@ Type check:
     - pytype .
 
 Unit tests:
-  stage: build
+  stage: check
   tags:
     - shared-fi
   before_script:
