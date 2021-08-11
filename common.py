@@ -587,8 +587,7 @@ class Evaluator:
 
     def format_print_metric_output(self, metric: Metric, scores: List[float], judgements: Judgements,
                                    submit_dir: str, stype: str = "seg"):
-        report_fpath = os.path.join(submit_dir, "%s-%s.%s.score" % ("src" if self.reference_free else "ref",
-                                                                    metric.label, stype))
+        report_fpath = os.path.join(submit_dir, "%s.%s.score" % (metric.label, stype))
         print("Generating report of metric %s to %s" % (metric.label, report_fpath))
 
         if os.path.exists(report_fpath):
@@ -598,7 +597,8 @@ class Evaluator:
         with open(report_fpath, "a+") as out_f:
             firstrow = True
             for (row_i, ref_author, sys_name), score in zip(judgements.metadata, scores):
-                row = "\t".join([metric.label, self.lang_pair, self.judgements_type, ref_author,
+                row = "\t".join([metric.label, self.lang_pair, self.judgements_type,
+                                 'src' if self.reference_free else ref_author,
                                  sys_name, str(row_i), str(score)])
                 if firstrow:
                     print("Expected: %s" % validation.COLFORMAT[stype])
