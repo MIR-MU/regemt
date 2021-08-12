@@ -644,7 +644,7 @@ class Evaluator:
             print("All metrics have already been submitted, I skip score inference")
             return
 
-        submitted_metrics = [m for m in self.metrics if m.label in self.submitted_metrics_labels]
+        submitted_metrics = [m for m in self.metrics if m.label in self.submitted_metric_labels]
         if not self.reference_free:
             for metric in submitted_metrics:
                 if self.is_metric_submitted(metric.label):
