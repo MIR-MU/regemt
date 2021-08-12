@@ -17,9 +17,9 @@ if __name__ == '__main__':
 
     with shelve.open(parser.A, 'r') as A, shelve.open(parser.B, 'r') as B, shelve.open(parser.C) as C:
         print(f'Gathering the keys stored in {parser.A}')
-        keys_A = A.keys()
+        keys_A = set(A.keys())
         print(f'Gathering the keys stored in {parser.B}')
-        keys_B = B.keys()
+        keys_B = set(B.keys())
 
         for key in tqdm(sorted(keys_A | keys_B), desc=f'Storing {parser.A} | {parser.B} in {parser.C}'):
             C[key] = A[key] if key in A else B[key]
