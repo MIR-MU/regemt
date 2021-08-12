@@ -120,11 +120,12 @@ def main(firstn: Optional[float] = None,
                                         reference_free=reference_free)
                         ]
 
+                    metrics = list(filter(lambda metric: metric is not None, metrics))
+
                     regression = make_metric(Regression, metrics, reference_free=reference_free)
                     regression_baseline = make_metric(Regression, None, reference_free=reference_free)
+                    assert regression is not None and regression_baseline is not None
                     metrics = [regression] + metrics + [regression_baseline]
-
-                    metrics = list(filter(lambda metric: metric is not None, metrics))
 
                     evaluator = Evaluator("data_dir", lang_pair, metrics, ["Regression", "Regression_baseline"],
                                           judgements_type=judgements_type, human=human,

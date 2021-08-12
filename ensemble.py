@@ -56,6 +56,7 @@ class Regression(ReferenceFreeMetric):
             return len(judgements) * [()]
         metric_features_transposed = []
         for metric in self.metrics:
+            assert metric is not None
             if self.reference_free:
                 assert isinstance(metric, ReferenceFreeMetric)
                 results = metric.compute_ref_free(judgements)
