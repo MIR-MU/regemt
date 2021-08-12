@@ -587,7 +587,8 @@ class Evaluator:
 
     def format_print_metric_output(self, metric: Metric, scores: List[float], judgements: Judgements,
                                    submit_dir: str, stype: str = "seg"):
-        report_fpath = os.path.join(submit_dir, "%s.%s.score" % (metric.label, stype))
+        report_fpath = os.path.join(submit_dir, "%s-%s.%s.score" % ("src" if self.reference_free else "ref",
+                                                                    metric.label, stype))
         print("Generating report of metric %s to %s" % (metric.label, report_fpath))
 
         if os.path.exists(report_fpath):
