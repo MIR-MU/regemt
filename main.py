@@ -54,11 +54,10 @@ def main(firstn: Optional[int] = None,
                 metrics = []
 
                 def make_metric(cls, *args, **kwargs):
-                    if not cls.supports(tgt_lang):
-                        LOGGER.warning(f'{cls} does not support tgt_lang={tgt_lang}')
-                        return None
-                    if reference_free and not cls.supports(src_lang):
-                        LOGGER.warning(f'{cls} does not support src_lang={src_lang}')
+                    if not cls.supports(src_lang, tgt_lang, reference_free):
+                        message = '%s does not support src_lang=%s, tgt_lang=%s, reference_free=%s'
+                        message = message.format(cls, src_lang, tgt_lang, reference_free)
+                        LOGGER.warning(message)
                         return None
                     metric = cls(*args, **kwargs)
                     return metric
