@@ -626,7 +626,7 @@ class Evaluator:
         with open(report_fpath, "a+") as out_f:
             for (row_i, ref_author, sys_name), score in zip(judgements.metadata, scores):
                 row = "\t".join([metric.label, self.lang_pair, self.judgements_type,
-                                 'src' if self.reference_free and not self.human else ref_author,
+                                 'src' if self.reference_free else ref_author,
                                  sys_name[4:] if (
                                      sys_name.startswith('hyp.') or
                                      sys_name.startswith('ref.')

@@ -31,7 +31,7 @@ def main(firstn: Optional[float] = None,
 
         for reference_free in reference_frees:
 
-            if human and not reference_free:
+            if human and reference_free:
                 continue
 
             print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
