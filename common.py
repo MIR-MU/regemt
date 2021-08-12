@@ -10,8 +10,6 @@ from gensim.utils import simple_preprocess
 from tqdm.autonotebook import tqdm
 import sklearn.utils
 
-import validation
-
 LOGGER = logging.getLogger(__name__)
 
 TRAIN_DATASET_FILE_TEMPLATE = "DAseg-wmt-newstest2015/DAseg.newstest2015.%s.%s"
@@ -596,7 +594,6 @@ class Evaluator:
                   "or it will be appended to the existing file.")
 
         with open(report_fpath, "a+") as out_f:
-            firstrow = True
             for (row_i, ref_author, sys_name), score in zip(judgements.metadata, scores):
                 row = "\t".join([metric.label, self.lang_pair, self.judgements_type,
                                  'src' if self.reference_free and not self.human else ref_author,
@@ -604,18 +601,7 @@ class Evaluator:
                                      sys_name.startswith('hyp.') or
                                      sys_name.startswith('ref.')
                                  ) else sys_name, str(row_i + 1), str(score)])
-                if firstrow:
-                    print("Expected: %s" % validation.COLFORMAT[stype])
-                    print("Actual: %s" % row)
-                    firstrow = False
-
                 out_f.write(row + "\n")
-
-        try:
-            if validation.validate_metric_output("data_dir/WMT21-data", submit_dir, metric.label, self.reference_free):
-                print("Output format validated")
-        except ValueError:
-            pass
 
     def submit_and_report(self, submitted_metrics_labels: List[str],
                           submit_dir="submit_dir") -> None:
