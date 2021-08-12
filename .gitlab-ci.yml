@@ -14,8 +14,8 @@ stages:
 #  tags:
 #    - shared-fi
 #  script:
-#    - docker build -t regemt:latest
-#    - docker push regemt:latest
+#    - docker build -t miratmu/regemt:latest .
+#    - docker push miratmu/regemt:latest
 
 Style check:
   stage: check
