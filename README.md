@@ -11,17 +11,17 @@ to the result, `xling` for zero-shot cross-lingual metric evaluation,
 ### How to reproduce our results
 
 To reproduce our results, you can use [our `miratmu/regemt` Docker
-image][docker]:
+image][docker] using the [NVIDIA Container Toolkit][nvidia-docker]:
 
 ```sh
 mkdir submit_dir
 
 # test the installation on a data subsample before running the full evaluation process:
-docker run -v submit_dir:/app/mt-eval/submit_dir miratmu/regemt python3 -m main --fast
+docker run --rm --gpus all -u $(id -u):$(id -g) -v "$PWD"/submit_dir:/app/mt-eval/submit_dir miratmu/regemt python3 -m main --fast
 
 # simply run the evaluation on the full data sets:
 # this takes ~4hrs on Tesla T4, might take longer on CPU
-docker run -v submit_dir:/app/mt-eval/submit_dir miratmu/regemt python3 -m main
+docker run --rm --gpus all -u $(id -u):$(id -g) -v "$PWD"/submit_dir:/app/mt-eval/submit_dir miratmu/regemt python3 -m main
 ```
 
 Alternatively, you can install our package using Python:
@@ -51,4 +51,5 @@ We're trying to keep it simple, but if you get into any trouble, or have a
 question, don't hesitate to [create an issue][issues] and we'll take a look!
 
  [docker]: https://hub.docker.com/r/miratmu/regemt
+ [nvidia-docker]: https://github.com/NVIDIA/nvidia-docker
  [issues]: https://github.com/MIR-MU/regemt/issues
