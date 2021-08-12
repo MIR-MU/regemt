@@ -22,4 +22,4 @@ if __name__ == '__main__':
         keys_B = set(B.keys())
 
         for key in tqdm(sorted(keys_A | keys_B), desc=f'Storing {parser.A} | {parser.B} in {parser.C}'):
-            C[key] = A[key] if key in A else B[key]
+            C[key] = B[key] if key in B else A[key]
