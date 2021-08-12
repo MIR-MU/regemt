@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.0
+FROM nvidia/cuda:11.0-runtime-ubuntu20.04
 
 # must-have tools in each docker image in production \
 RUN apt-get update && apt-get install -y python3.8 python3.8-distutils python3.8-dev \
