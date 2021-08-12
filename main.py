@@ -30,7 +30,8 @@ def main(firstn: Optional[int] = None,
          enable_compositionality: bool = True,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
-         enable_contextual_scm: bool = False):
+         enable_contextual_scm: bool = False,
+         submit_dir: str = 'submit_dir'):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
@@ -143,8 +144,8 @@ def main(firstn: Optional[int] = None,
                     ax.set_title(title)
                     plt.show()
                     plt.tight_layout()
-                    plt.savefig(f'{basename}.png', dpi=dpi)
-                    plt.savefig(f'{basename}.pdf', dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.png'), dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.pdf'), dpi=dpi)
                     plt.close()
 
                 plot_correlations(report, 'pearson')
@@ -173,8 +174,8 @@ def main(firstn: Optional[int] = None,
                     ax.set_ylabel('translation length')
                     plt.show()
                     plt.tight_layout()
-                    plt.savefig(f'{basename}.png', dpi=dpi)
-                    plt.savefig(f'{basename}.pdf', dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.png'), dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.pdf'), dpi=dpi)
                     plt.close()
 
                 plot_metric(regression_baseline)

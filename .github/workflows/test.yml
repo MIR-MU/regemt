@@ -72,9 +72,9 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: heatmaps-${{ matrix.python }}
-          path: heatmap-*.png
+          path: submit_dir/heatmap-*.png
       - name: Upload visualizations of regression metrics
         uses: actions/upload-artifact@v2
         with:
           name: metrics-${{ matrix.python }}
-          path: metric-*.png
+          path: submit_dir/metric-*.png
