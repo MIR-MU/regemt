@@ -15,6 +15,7 @@ RUN apt-get -qy update \
     python3.8-distutils \
  && curl https://bootstrap.pypa.io/get-pip.py | python3.8 \
  && python3 -m pip install -r /app/mt-eval/requirements.txt \
+ && python3 -m pip install -U numpy \
  && apt-get -qy remove --purge \
     build-essential \
     curl \
