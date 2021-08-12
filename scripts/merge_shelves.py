@@ -15,11 +15,11 @@ if __name__ == '__main__':
     parser.add_argument('C', type=str, nargs=1)
     args = parser.parse_args()
 
-    with shelve.open(parser.A, 'r') as A, shelve.open(parser.B, 'r') as B, shelve.open(parser.C) as C:
-        print(f'Gathering the keys stored in {parser.A}')
+    with shelve.open(args.A, 'r') as A, shelve.open(args.B, 'r') as B, shelve.open(args.C) as C:
+        print(f'Gathering the keys stored in {args.A}')
         keys_A = set(A.keys())
-        print(f'Gathering the keys stored in {parser.B}')
+        print(f'Gathering the keys stored in {args.B}')
         keys_B = set(B.keys())
 
-        for key in tqdm(sorted(keys_A | keys_B), desc=f'Storing {parser.A} | {parser.B} in {parser.C}'):
+        for key in tqdm(sorted(keys_A | keys_B), desc=f'Storing {args.A} | {args.B} in {args.C}'):
             C[key] = B[key] if key in B else A[key]
