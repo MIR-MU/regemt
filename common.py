@@ -267,10 +267,12 @@ class Evaluator:
     submission_judgement_types = ("challengeset", "florestest2021", "newstest2021", "tedtalks")
 
     def __init__(self, data_dir: str, lang_pair: str, metrics: List[Union[Metric, ReferenceFreeMetric]],
+                 submitted_metric_labels: List[str],
                  judgements_type: str, firstn: Optional[int] = 100, reference_free: bool = False, human: bool = False):
         self.lang_pair = lang_pair
         self.data_dir = data_dir
         self.metrics = metrics
+        self.submitted_metric_labels = tuple(submitted_metric_labels)
         self.judgements_type = judgements_type
         self.firstn = firstn
         self.reference_free = reference_free
@@ -282,6 +284,10 @@ class Evaluator:
                 print("Test judgements are empty, I skip metric fitting for %s:%s:human=%s" %
                       (self.judgements_type, self.lang_pair, self.human))
                 return
+
+        if all((self.is_metric_submitted(metric_label) for metric_label in self.submitted_metric_labels)):
+            print("All metrics have already been submitted, I skip metric fitting")
+            return
 
         train_judgements = self.load_judgements("train")
 
@@ -583,10 +589,34 @@ class Evaluator:
 
         return report
 
-    def format_print_metric_output(self, metric: Metric, scores: List[float], judgements: Judgements,
-                                   submit_dir: str, stype: str = "seg"):
+    def _get_report_fpath(self, metric_label: str, submit_dir: str = 'submit_dir', stype: str = 'seg'):
         report_fpath = os.path.join(submit_dir, "%s-%s.%s.score" % ("src" if self.reference_free else "ref",
-                                                                    metric.label, stype))
+                                                                    metric_label, stype))
+        return report_fpath
+
+    def is_metric_submitted(self, metric_label: str):
+        report_fpath = self._get_report_fpath(metric_label)
+
+        try:
+            with open(report_fpath, 'rt') as f:
+                for line in f:
+                    actual_metric_label, actual_lang_pair, actual_judgements_type, refset, sysid, *_ = line.split('\t')
+                    actual_reference_free = refset == 'src'
+                    actual_human = sysid.startswith('ref')
+                    if all([
+                                metric_label == actual_metric_label,
+                                self.lang_pair == actual_lang_pair,
+                                self.judgements_type == actual_judgements_type,
+                                self.reference_free == actual_reference_free,
+                                self.human == actual_human,
+                            ]):
+                        return True
+                return False
+        except IOError:
+            return False
+
+    def format_print_metric_output(self, metric: Metric, scores: List[float], judgements: Judgements):
+        report_fpath = self._get_report_fpath(metric.label)
         print("Generating report of metric %s to %s" % (metric.label, report_fpath))
 
         if os.path.exists(report_fpath):
@@ -603,19 +633,27 @@ class Evaluator:
                                  ) else sys_name, str(row_i + 1), str(score)])
                 out_f.write(row + "\n")
 
-    def submit_and_report(self, submitted_metrics_labels: List[str],
-                          submit_dir="submit_dir") -> None:
+    def submit_and_report(self) -> None:
         test_judgements = self.load_judgements("test")
         if not test_judgements:
             print("Test judgements are empty, I do not produce any output for %s:%s:human=%s" %
                   (self.judgements_type, self.lang_pair, self.human))
             return
-        submitted_metrics = [m for m in self.metrics if m.label in submitted_metrics_labels]
+
+        if all((self.is_metric_submitted(metric_label) for metric_label in self.submitted_metric_labels)):
+            print("All metrics have already been submitted, I skip score inference")
+            return
+
+        submitted_metrics = [m for m in self.metrics if m.label in self.submitted_metrics_labels]
         if not self.reference_free:
             for metric in submitted_metrics:
+                if self.is_metric_submitted(metric.label):
+                    print(f'Metric {metric} has already been submitted, I skip score inference')
                 scores = [float(val) for val in metric.compute(test_judgements)]
-                self.format_print_metric_output(metric, scores, test_judgements, submit_dir)
+                self.format_print_metric_output(metric, scores, test_judgements)
         else:
             for metric in [m for m in submitted_metrics if isinstance(m, ReferenceFreeMetric)]:
+                if self.is_metric_submitted(metric.label):
+                    print(f'Metric {metric} has already been submitted, I skip score inference')
                 scores = [float(val) for val in metric.compute_ref_free(test_judgements)]
-                self.format_print_metric_output(metric, scores, test_judgements, submit_dir)
+                self.format_print_metric_output(metric, scores, test_judgements)

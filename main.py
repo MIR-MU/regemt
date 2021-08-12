@@ -126,11 +126,11 @@ def main(firstn: Optional[float] = None,
 
                     metrics = list(filter(lambda metric: metric is not None, metrics))
 
-                    evaluator = Evaluator("data_dir", lang_pair, metrics,
+                    evaluator = Evaluator("data_dir", lang_pair, metrics, ["Regression", "Regression_baseline"],
                                           judgements_type=judgements_type, human=human,
                                           reference_free=reference_free, firstn=firstn)
                     if judgements_type in evaluator.submission_judgement_types:
-                        evaluator.submit_and_report(submitted_metrics_labels=["Regression", "Regression_baseline"])
+                        evaluator.submit_and_report()
                     else:
                         evaluator.evaluate()
 
