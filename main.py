@@ -59,7 +59,7 @@ def main(firstn: Optional[float] = None,
                     def make_metric(cls, *args, **kwargs):
                         if not cls.supports(src_lang, tgt_lang, reference_free):
                             message = '%s does not support src_lang=%s, tgt_lang=%s, reference_free=%s'
-                            message = message.format(cls, src_lang, tgt_lang, reference_free)
+                            message = message % (cls, src_lang, tgt_lang, reference_free)
                             LOGGER.warning(message)
                             return None
                         metric = cls(*args, **kwargs)
