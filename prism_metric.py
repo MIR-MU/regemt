@@ -16,10 +16,6 @@ class PrismMetric(ReferenceFreeMetric):
 
     def __init__(self, tgt_lang: str, src_lang: str, reference_free=False,
                  model_dir="prism/model_dir", device="cuda:1"):
-        assert self.__class__.supports(tgt_lang)
-        if reference_free:
-            assert self.__class__.supports(src_lang)
-
         model_path = Path(model_dir)
 
         if not model_path.exists():
@@ -47,8 +43,10 @@ class PrismMetric(ReferenceFreeMetric):
                                     segment_scores=True)
 
     @staticmethod
-    def supports(lang: str) -> bool:
-        return lang in MODELS['8412b2044da4b9b2c0a8ce87b305d0d1']['langs']
+    def supports(src_lang: str, tgt_lang: str, reference_free: bool) -> bool:
+        def _supports(lang: str):
+            return lang in MODELS['8412b2044da4b9b2c0a8ce87b305d0d1']['langs']
+        return _supports(tgt_lang) and (not reference_free or _supports(src_lang))
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, PrismMetric):
