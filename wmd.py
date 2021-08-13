@@ -44,7 +44,9 @@ class ContextualWMD(ReferenceFreeMetric):
                 _add_word_to_kv(w2v_model, None, token, token_embedding, len(dictionary))
 
         zipped_corpus = list(zip(augmented_reference_corpus.corpus, augmented_translation_corpus.corpus))
-        out_scores = get_wmds(w2v_model, tqdm(zipped_corpus, desc=self.label))
+        tokenized_texts = zipped_corpus
+
+        out_scores = get_wmds(w2v_model, tokenized_texts)
         return out_scores
 
     def __eq__(self, other: Any) -> bool:
@@ -99,7 +101,7 @@ class DecontextualizedWMD(ReferenceFreeMetric):
             _add_word_to_kv(w2v_model, None, token, token_embedding, len(decontextualized_embeddings))
 
         zipped_corpus = list(zip(ref_corpus, trans_corpus))
-        tokenized_texts = tqdm(zipped_corpus, desc=self.label)
+        tokenized_texts = zipped_corpus
         if self.use_tfidf:
             out_scores = get_wmds_tfidf(w2v_model, dictionary, tfidf, tokenized_texts)
         else:
@@ -132,7 +134,7 @@ class WMD(Metric):
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         ref_corpus, trans_corpus = map(
-            list, zip(*judgements.get_tokenized_texts(desc=self.label)))
+            list, zip(*judgements.get_tokenized_texts()))
 
         corpus = ref_corpus + trans_corpus
 
@@ -140,7 +142,7 @@ class WMD(Metric):
             dictionary = Dictionary(corpus)
             tfidf = TfidfModel(dictionary=dictionary, smartirs='nfx')
 
-        tokenized_texts = judgements.get_tokenized_texts(desc=self.label)
+        tokenized_texts = list(judgements.get_tokenized_texts())
         if self.use_tfidf:
             out_scores = get_wmds_tfidf(self.embedder.keyedvectors, dictionary, tfidf, tokenized_texts)
         else:
