@@ -145,7 +145,7 @@ class Metric(abc.ABC):
     label: str = 'None'
 
     @staticmethod
-    def supports(lang: str) -> bool:
+    def supports(src_lang: str, tgt_lang: str, reference_free: bool) -> bool:
         return True
 
     def fit(self, train_judgements: Judgements) -> None:

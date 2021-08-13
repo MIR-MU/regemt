@@ -101,17 +101,15 @@ class SyntacticCompositionality(ReferenceFreeMetric):
         Compares syntactic compositionality's perplexity on train distribution and outer distribution.
         Syntactic compositionality is a transition matrix of PoS tags
         """
-        assert self.__class__.supports(tgt_lang)
         self.tgt_lang = tgt_lang
         self.reference_free = reference_free
 
         if reference_free:
-            assert self.__class__.supports(src_lang)
             self.src_lang = src_lang
 
     @staticmethod
-    def supports(lang: str) -> bool:
-        return TransitionModel.supports(lang)
+    def supports(src_lang: str, tgt_lang: str, reference_free: bool) -> bool:
+        return TransitionModel.supports(tgt_lang) and (not reference_free or TransitionModel.supports(src_lang))
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
