@@ -63,11 +63,9 @@ class Judgements:
         self.scores = tuple(scores) if scores is not None else None
         self.metadata = tuple(metadata) if metadata is not None else None
 
-    def get_tokenized_texts(self, desc: Optional[str] = None) -> Iterable[Tuple[List[str], List[str]]]:
+    def get_tokenized_texts(self) -> Iterable[Tuple[List[str], List[str]]]:
         sources = [t[0] for t in self.references] if self.references is not None else self.src_texts
         corpus = zip(sources, self.translations)
-        if desc:
-            corpus = tqdm(corpus, desc=desc, total=len(self))
         for source, translation in corpus:
             source_words = list(map(str.lower, simple_preprocess(source)))
             translation_words = list(map(str.lower, simple_preprocess(translation)))

@@ -181,7 +181,7 @@ class SCM(Metric):
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
         ref_corpus, trans_corpus = map(
-            list, zip(*judgements.get_tokenized_texts(desc=self.label)))
+            list, zip(*judgements.get_tokenized_texts()))
 
         corpus = ref_corpus + trans_corpus
         dictionary = Dictionary(corpus)
@@ -196,7 +196,7 @@ class SCM(Metric):
             similarity_matrix = SparseTermSimilarityMatrix(similarity_index, dictionary)
 
         out_scores = []
-        for reference_words, translation_words in judgements.get_tokenized_texts(desc=self.label):
+        for reference_words, translation_words in judgements.get_tokenized_texts():
             ref_index = dictionary.doc2bow(reference_words)
             trans_index = dictionary.doc2bow(translation_words)
             if self.use_tfidf:
