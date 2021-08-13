@@ -10,6 +10,8 @@ to the result, `xling` for zero-shot cross-lingual metric evaluation,
 
 ### How to reproduce our results
 
+#### Docker
+
 To reproduce our results, you can use [our `miratmu/regemt` Docker
 image][docker] using the [NVIDIA Container Toolkit][nvidia-docker]:
 
@@ -23,6 +25,12 @@ docker run --rm --gpus all -u $(id -u):$(id -g) -v submit_dir:/submit_dir miratm
 # this takes ~4hrs on Tesla T4, might take longer on CPU
 docker run --rm --gpus all -u $(id -u):$(id -g) -v submit_dir:/submit_dir miratmu/regemt
 ```
+
+The evaluation process will generate the correlation reports in `.png` and
+`.pdf` format for each of the evaluated configurations into the `submit_dir/`
+directory.
+
+#### Python
 
 Alternatively, you can install our package using Python:
 
@@ -44,8 +52,10 @@ python -m main
 ```
 
 The evaluation process will generate the correlation reports in `.png` and
-`.pdf` format for each of the evaluated configurations into the `submit_dir/`
+`.pdf` format for each of the evaluated configurations into the `regemt/`
 directory.
+
+***
 
 We're trying to keep it simple, but if you get into any trouble, or have a
 question, don't hesitate to [create an issue][issues] and we'll take a look!
