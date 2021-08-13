@@ -23,7 +23,10 @@ def main(firstn: Optional[float] = None,
          #    but we are only able to load it for newstest2021, indicating an error
          #    in Evaluator.load_submission_judgements()
          #
-         # FIXME Other open issues:
+         # Other ideas:
+         # 2. Running with firstn=100 is a good idea even when producing a submission.
+         #    It will allow us to catch any issues in a fraction of the time to do the full
+         #    run. This is good, because some issues may render the entire submission useless.
          # 3. SCM.supports() and WMD.supports() should either return False for languages
          #    that are not written in Latin script, or we should use proper tokenization for
          #    these languages.
