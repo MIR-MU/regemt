@@ -5,7 +5,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 COPY . /app/mt-eval/
 
-RUN apt-get -qy update \
+RUN rm -rf /app/mt-eval/submit_dir \
+ && ln -s /submit_dir /app/mt-eval/submit_dir \
+ && apt-get -qy update \
  && apt-get -qy install --no-install-recommends \
     build-essential \
     curl \
