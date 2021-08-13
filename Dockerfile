@@ -29,4 +29,4 @@ RUN apt-get -qy update \
  && rm -rf /root/.cache/pip
 
 WORKDIR /app/mt-eval
-CMD ["python3", "-m", "main"]
+ENTRYPOINT ["python3", "-m", "main"]

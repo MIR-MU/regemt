@@ -80,7 +80,7 @@ jobs:
           docker build -t miratmu/regemt:latest .
       - name: Unit tests
         run: |
-          docker run -v submit_dir:/app/mt-eval/submit_dir miratmu/regemt python3 -m main --fast
+          docker run -v submit_dir:/submit_dir miratmu/regemt --fast
       - name: Authenticate registry
         uses: azure/docker-login@v1
         with:
