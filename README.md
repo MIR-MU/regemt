@@ -17,7 +17,7 @@ image][docker] using the [NVIDIA Container Toolkit][nvidia-docker]:
 mkdir submit_dir
 
 # test the installation on a data subsample before running the full evaluation process:
-docker run --rm --gpus all -u $(id -u):$(id -g) -v "$PWD"/submit_dir:/app/mt-eval/submit_dir miratmu/regemt --fast
+docker run --rm --gpus all -u $(id -u):$(id -g) -v "$PWD"/submit_dir:/submit_dir miratmu/regemt --fast
 
 # simply run the evaluation on the full data sets:
 # this takes ~4hrs on Tesla T4, might take longer on CPU
