@@ -37,7 +37,8 @@ def main(firstn: Optional[int] = None,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False,
-         ablation_study: bool = True):
+         ablation_study: bool = True,
+         submit_dir: str = '.'):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
@@ -60,11 +61,10 @@ def main(firstn: Optional[int] = None,
                 base_metrics: List[Optional[Metric]] = []
 
                 def make_metric(cls, *args, **kwargs):
-                    if not cls.supports(tgt_lang):
-                        LOGGER.warning(f'{cls} does not support tgt_lang={tgt_lang}')
-                        return None
-                    if reference_free and not cls.supports(src_lang):
-                        LOGGER.warning(f'{cls} does not support src_lang={src_lang}')
+                    if not cls.supports(src_lang, tgt_lang, reference_free):
+                        message = '%s does not support src_lang=%s, tgt_lang=%s, reference_free=%s'
+                        message = message % (cls, src_lang, tgt_lang, reference_free)
+                        LOGGER.warning(message)
                         return None
                     metric = cls(*args, **kwargs)
                     return metric
@@ -74,7 +74,8 @@ def main(firstn: Optional[int] = None,
                     from comet_metric import Comet
                     base_metrics += [
                         make_metric(Comet),
-                        make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                        make_metric(PrismMetric, src_lang=src_lang, tgt_lang=tgt_lang,
+                                    reference_free=reference_free),
                     ]
 
                 base_metrics += [
@@ -146,8 +147,8 @@ def main(firstn: Optional[int] = None,
                         ax.set_title(title)
                         plt.show()
                         plt.tight_layout()
-                        plt.savefig(f'{basename}.png', dpi=dpi)
-                        plt.savefig(f'{basename}.pdf', dpi=dpi)
+                        plt.savefig(os.path.join(submit_dir, f'{basename}.png'), dpi=dpi)
+                        plt.savefig(os.path.join(submit_dir, f'{basename}.pdf'), dpi=dpi)
                         plt.close()
 
                         return correlations
@@ -169,8 +170,8 @@ def main(firstn: Optional[int] = None,
                         ax.set_ylabel(f'{METHOD_NAMES[method]} of {regression.label}')
                         plt.show()
                         plt.tight_layout()
-                        plt.savefig(f'{basename}.png', dpi=dpi)
-                        plt.savefig(f'{basename}.pdf', dpi=dpi)
+                        plt.savefig(os.path.join(submit_dir, f'{basename}.png'), dpi=dpi)
+                        plt.savefig(os.path.join(submit_dir, f'{basename}.pdf'), dpi=dpi)
                         plt.close()
 
                     plot_correlations('pearson')
