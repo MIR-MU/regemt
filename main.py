@@ -16,14 +16,11 @@ from ensemble import Regression
 LOGGER = logging.getLogger(__name__)
 
 
+# Notes:
+#  - Running with firstn=100 is a good idea even when producing a submission.
+#    It will allow us to catch any issues in a fraction of the time to do the full
+#    run. This is good, because some issues may render the entire submission useless.
 def main(firstn: Optional[float] = None,
-         # Notes:
-         #  - Running with firstn=100 is a good idea even when producing a submission.
-         #    It will allow us to catch any issues in a fraction of the time to do the full
-         #    run. This is good, because some issues may render the entire submission useless.
-         #  - SCM.supports() and WMD.supports() should either return False for languages
-         #    that are not written in Latin script, or we should use proper tokenization for
-         #    these languages.
          reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'tedtalks', 'newstest2021'),
          humans: Tuple[bool, ...] = (True, False),

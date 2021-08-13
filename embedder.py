@@ -56,6 +56,10 @@ class FastTextEmbedder:
                         'vec', 'vi', 'vls', 'vo', 'wa', 'war', 'xmf', 'yi', 'yo',
                         'zea', 'zh')
 
+    @classmethod
+    def supports_with_simple_preprocess(cls, lang: str):
+        return cls.supports(lang) and lang not in ('zh', 'ja', 'th', 'vi')
+
     def __hash__(self) -> int:
         return hash(self.lang)
 

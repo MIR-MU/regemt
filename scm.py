@@ -207,7 +207,7 @@ class SCM(Metric):
 
     @staticmethod
     def supports(src_lang: str, tgt_lang: str, reference_free: bool) -> bool:
-        return FastTextEmbedder.supports(tgt_lang)
+        return FastTextEmbedder.supports_with_simple_preprocess(tgt_lang)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, SCM):
