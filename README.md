@@ -2,13 +2,13 @@
 
 [![Test and publish](https://github.com/MIR-MU/regemt/workflows/Test%20and%20publish/badge.svg)](https://github.com/MIR-MU/regemt/actions?query=workflow%3ATest%20and%20publish)
 
-This branch contains sources for reproducing the results reported in WMT21
-Metrics workshop.
+The `master` branch contains sources for reproducing our results reported in
+the WMT21 Metrics workshop.
 
 See `ablation-study` for evaluating an impact of each of the ensembled metrics
 to the result, `xling` for zero-shot cross-lingual metric evaluation,
-`multiling` for evaluation of the fit on multiple languages, or
-`test_judgements` for re-generating the submission.
+`multiling` for evaluation of the fit on multiple languages, `test_judgements`
+for re-generating the submission, and `docker-build` for building a Docker image.
 
 ### How to reproduce our results
 
