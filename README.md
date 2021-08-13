@@ -1,5 +1,7 @@
 # RegEMT: Regressive ensemble for machine translation evaluation
 
+[![Test and publish](https://github.com/MIR-MU/regemt/workflows/Test%20and%20publish/badge.svg)](https://github.com/MIR-MU/regemt/actions?query=workflow%3ATest%20and%20publish)
+
 This branch contains sources for reproducing the results reported in WMT21
 Metrics workshop.
 
