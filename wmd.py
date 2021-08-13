@@ -147,6 +147,10 @@ class WMD(Metric):
             out_scores = get_wmds(self.embedder.keyedvectors, tokenized_texts)
         return out_scores
 
+    @staticmethod
+    def supports(src_lang: str, tgt_lang: str, reference_free: bool) -> bool:
+        return FastTextEmbedder.supports_with_simple_preprocess(tgt_lang)
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, WMD):
             return NotImplemented
