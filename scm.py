@@ -197,6 +197,10 @@ class SCM(Metric):
             out_scores.append(similarity_matrix.inner_product(ref_index, trans_index, normalized=(True, True)))
         return out_scores
 
+    @staticmethod
+    def supports(src_lang: str, tgt_lang: str, reference_free: bool) -> bool:
+        return FastTextEmbedder.supports_with_simple_preprocess(tgt_lang)
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, SCM):
             return NotImplemented
