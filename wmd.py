@@ -50,7 +50,7 @@ class ContextualWMD(ReferenceFreeMetric):
         zipped_corpus = list(zip(augmented_reference_corpus.corpus, augmented_translation_corpus.corpus))
         tokenized_texts = zipped_corpus
 
-        out_scores = get_wmds(w2v_model, tokenized_texts)
+        out_scores = get_wmds(w2v_model, tokenized_texts, self.label)
         return out_scores
 
     def __eq__(self, other: Any) -> bool:
@@ -152,9 +152,9 @@ class WMD(Metric):
 
         tokenized_texts = list(judgements.get_tokenized_texts())
         if self.use_tfidf:
-            out_scores = get_wmds_tfidf(self.embedder.keyedvectors, dictionary, tfidf, tokenized_texts)
+            out_scores = get_wmds_tfidf(self.embedder.keyedvectors, dictionary, tfidf, tokenized_texts, self.label)
         else:
-            out_scores = get_wmds(self.embedder.keyedvectors, tokenized_texts)
+            out_scores = get_wmds(self.embedder.keyedvectors, tokenized_texts, self.label)
         return out_scores
 
     @staticmethod
