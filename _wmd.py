@@ -21,14 +21,14 @@ def _get_wmds_worker(args: Tuple[List[str], List[str]]) -> float:
     return distance
 
 
-def get_wmds(w2v_model: KeyedVectors, tokenized_texts: List[Tuple[List[str], List[str]]]) -> List[float]:
+def get_wmds(w2v_model: KeyedVectors, tokenized_texts: List[Tuple[List[str], List[str]]], desc: str) -> List[float]:
     w2v_model.fill_norms()
     global WMD_W2V_MODEL
     WMD_W2V_MODEL = w2v_model
     # default context on some OSs ("spawn") does not allow to access the shared objects
     with get_context('fork').Pool(None) as pool:
         distances = pool.imap(_get_wmds_worker, tokenized_texts)
-        distances = tqdm(distances, total=len(tokenized_texts), desc='get_wmds')
+        distances = tqdm(distances, total=len(tokenized_texts), desc='f{desc}: get_wmds')
         distances = list(distances)
     WMD_W2V_MODEL = None
     return distances
@@ -85,7 +85,7 @@ def _get_wmds_tfidf_worker(args: Tuple[List[str], List[str]]) -> float:
 
 
 def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model: TfidfModel,
-                   tokenized_texts: List[Tuple[List[str], List[str]]]) -> List[float]:
+                   tokenized_texts: List[Tuple[List[str], List[str]]], desc: str) -> List[float]:
     w2v_model.fill_norms()
     global WMD_W2V_MODEL, WMD_DICTIONARY, WMD_TFIDF_MODEL
     WMD_W2V_MODEL = w2v_model
@@ -94,7 +94,7 @@ def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model:
     # default context on some OSs ("spawn") does not allow to access the shared objects
     with get_context('fork').Pool(None) as pool:
         distances = pool.imap(_get_wmds_tfidf_worker, tokenized_texts)
-        distances = tqdm(distances, total=len(tokenized_texts), desc='get_wmds_tfidf')
+        distances = tqdm(distances, total=len(tokenized_texts), desc='f{desc}: get_wmds_tfidf')
         distances = list(distances)
     WMD_W2V_MODEL = None
     WMD_DICTIONARY = None
