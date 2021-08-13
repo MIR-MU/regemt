@@ -31,7 +31,7 @@ def main(firstn: Optional[int] = None,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False,
-         submit_dir: str = 'submit_dir'):
+         submit_dir: str = '.'):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
