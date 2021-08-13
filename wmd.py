@@ -111,9 +111,9 @@ class DecontextualizedWMD(ReferenceFreeMetric):
         zipped_corpus = list(zip(ref_corpus, trans_corpus))
         tokenized_texts = zipped_corpus
         if self.use_tfidf:
-            out_scores = get_wmds_tfidf(w2v_model, dictionary, tfidf, tokenized_texts)
+            out_scores = get_wmds_tfidf(w2v_model, dictionary, tfidf, tokenized_texts, self.label)
         else:
-            out_scores = get_wmds(w2v_model, tokenized_texts)
+            out_scores = get_wmds(w2v_model, tokenized_texts, self.label)
         return out_scores
 
     def __eq__(self, other: Any) -> bool:
