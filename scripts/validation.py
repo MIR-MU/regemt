@@ -38,7 +38,7 @@ for level in ['sys', 'seg']:
         continue
 
     try:
-        demo = pd.read_csv(f'./{metrictype}-metric.{level}.score', sep='\t', header=None)
+        demo = pd.read_csv(f'./data_dir/WMT21-data/validation/{metrictype}-metric.{level}.score', sep='\t', header=None)
     except FileNotFoundError:
         print(f"Please download the f'./{metrictype}-metric.{level}.score' from the Google Drive Folder")
         continue
