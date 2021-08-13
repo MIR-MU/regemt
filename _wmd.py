@@ -1,5 +1,5 @@
 from multiprocessing import get_context
-from typing import List, Iterable, Tuple, Optional
+from typing import List, Tuple, Optional
 
 from gensim.models import TfidfModel
 from gensim.corpora import Dictionary
@@ -7,6 +7,7 @@ from gensim.models.keyedvectors import KeyedVectors
 from pyemd import emd
 from scipy.spatial.distance import cdist
 import numpy as np
+from tqdm.autonotebook import tqdm
 
 
 WMD_W2V_MODEL: Optional[KeyedVectors] = None
@@ -20,14 +21,16 @@ def _get_wmds_worker(args: Tuple[List[str], List[str]]) -> float:
     return distance
 
 
-def get_wmds(w2v_model: KeyedVectors, tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
+def get_wmds(w2v_model: KeyedVectors, tokenized_texts: List[Tuple[List[str], List[str]]]) -> List[float]:
     w2v_model.fill_norms()
     global WMD_W2V_MODEL
     WMD_W2V_MODEL = w2v_model
     distances = []
     # default context on some OSs ("spawn") does not allow to access the shared objects
     with get_context('fork').Pool(None) as pool:
-        for distance in pool.imap(_get_wmds_worker, tokenized_texts):
+        distances = pool.imap(_get_wmds_worker, tokenized_texts)
+        distances = tqdm(distances, total=len(tokenized_texts), desc='get_wmds')
+        for distance in distances:
             distances.append(distance)
     WMD_W2V_MODEL = None
     return distances
@@ -84,7 +87,7 @@ def _get_wmds_tfidf_worker(args: Tuple[List[str], List[str]]) -> float:
 
 
 def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model: TfidfModel,
-                   tokenized_texts: Iterable[Tuple[List[str], List[str]]]) -> List[float]:
+                   tokenized_texts: List[Tuple[List[str], List[str]]]) -> List[float]:
     w2v_model.fill_norms()
     global WMD_W2V_MODEL, WMD_DICTIONARY, WMD_TFIDF_MODEL
     WMD_W2V_MODEL = w2v_model
@@ -93,7 +96,9 @@ def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model:
     distances = []
     # default context on some OSs ("spawn") does not allow to access the shared objects
     with get_context('fork').Pool(None) as pool:
-        for distance in pool.imap(_get_wmds_tfidf_worker, tokenized_texts):
+        distances = pool.imap(_get_wmds_tfidf_worker, tokenized_texts)
+        distances = tqdm(distances, total=len(tokenized_texts), desc='get_wmds_tfidf')
+        for distance in distances:
             distances.append(distance)
     WMD_W2V_MODEL = None
     WMD_DICTIONARY = None
