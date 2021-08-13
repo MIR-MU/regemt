@@ -36,6 +36,30 @@ class FastTextEmbedder:
             self.all_keyedvectors[self.lang] = keyedvectors
         return self.all_keyedvectors[self.lang]
 
+    @staticmethod
+    def supports(lang: str) -> bool:
+        return lang in ('af', 'als', 'am', 'an', 'ar', 'arz', 'as', 'ast',
+                        'az', 'azb', 'ba', 'bar', 'bcl', 'be', 'bg', 'bh', 'bn', 'bo',
+                        'bpy', 'br', 'bs', 'ca', 'ce', 'ceb', 'ckb', 'co', 'cs', 'cv',
+                        'cy', 'da', 'de', 'diq', 'dv', 'el', 'eml', 'en', 'eo', 'es',
+                        'et', 'eu', 'fa', 'fi', 'fr', 'frr', 'fy', 'ga', 'gd', 'gl',
+                        'gom', 'gu', 'gv', 'he', 'hi', 'hif', 'hr', 'hsb', 'ht', 'hu',
+                        'hy', 'ia', 'id', 'ilo', 'io', 'is', 'it', 'ja', 'jv', 'ka',
+                        'kk', 'km', 'kn', 'ko', 'ku', 'ky', 'la', 'lb', 'li', 'lmo',
+                        'lt', 'lv', 'mai', 'mg', 'mhr', 'min', 'mk', 'ml', 'mn', 'mr',
+                        'mrj', 'ms', 'mt', 'mwl', 'my', 'myv', 'mzn', 'nah', 'nap',
+                        'nds', 'ne', 'new', 'nl', 'nn', 'no', 'nso', 'oc', 'or', 'os',
+                        'pa', 'pam', 'pfl', 'pl', 'pms', 'pnb', 'ps', 'pt', 'qu', 'rm',
+                        'ro', 'ru', 'sa', 'sah', 'sc', 'scn', 'sco', 'sd', 'sh', 'si',
+                        'sk', 'sl', 'so', 'sq', 'sr', 'su', 'sv', 'sw', 'ta', 'te',
+                        'tg', 'th', 'tk', 'tl', 'tr', 'tt', 'ug', 'uk', 'ur', 'uz',
+                        'vec', 'vi', 'vls', 'vo', 'wa', 'war', 'xmf', 'yi', 'yo',
+                        'zea', 'zh')
+
+    @classmethod
+    def supports_with_simple_preprocess(cls, lang: str):
+        return cls.supports(lang) and lang not in ('zh', 'ja', 'th', 'vi')
+
     def __hash__(self) -> int:
         return hash(self.lang)
 
