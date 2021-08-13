@@ -17,13 +17,18 @@ LOGGER = logging.getLogger(__name__)
 
 
 def main(firstn: Optional[float] = None,
-         # FIXME: Open issues with reference-based evaluation:
+         # FIXME Open issues with reference-based evaluation:
          # 1. We are supposed to report results for both ref-A and ref-B, where available,
          #    but out metrics are hard-coded to only use the first reference (ref-A).
          # 2. ref-B should be available for most judgement_types, see ref-metric.seg.score
          #    from https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS
          #    but we are only able to load it for newstest2021, indicating an error
          #    in Evaluator.load_submission_judgements()
+         #
+         # FIXME Other open issues:
+         # 3. SCM.supports() and WMD.supports() should either return False for languages
+         #    that are not written in Latin script, or we should use proper tokenization for
+         #    these languages.
          reference_frees: Tuple[bool, ...] = (True, ),  # , False),
          judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'tedtalks', 'newstest2021'),
          humans: Tuple[bool, ...] = (True, False),
