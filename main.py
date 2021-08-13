@@ -17,20 +17,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 def main(firstn: Optional[float] = None,
-         # FIXME Open issues with reference-based evaluation:
-         # 1. ref-B should be available for most judgement_types, see ref-metric.seg.score
-         #    from https://drive.google.com/drive/folders/1TNIeXirfNMa6WV7LlS3Z51UxNNCgGcmS
-         #    but we are only able to load it for newstest2021, indicating an error
-         #    in Evaluator.load_submission_judgements()
-         #
-         # Other ideas:
-         # 2. Running with firstn=100 is a good idea even when producing a submission.
+         # Notes:
+         #  - Running with firstn=100 is a good idea even when producing a submission.
          #    It will allow us to catch any issues in a fraction of the time to do the full
          #    run. This is good, because some issues may render the entire submission useless.
-         # 3. SCM.supports() and WMD.supports() should either return False for languages
+         #  - SCM.supports() and WMD.supports() should either return False for languages
          #    that are not written in Latin script, or we should use proper tokenization for
          #    these languages.
-         reference_frees: Tuple[bool, ...] = (True, ),  # , False),
+         reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'tedtalks', 'newstest2021'),
          humans: Tuple[bool, ...] = (True, False),
          src_langs: Optional[Set[str]] = None,
