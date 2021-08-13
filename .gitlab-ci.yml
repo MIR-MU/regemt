@@ -41,7 +41,3 @@ Unit tests:
     - pip install -r requirements_fast.txt
   script:
     - python -m main --fast
-  artifacts:
-    paths:
-      - submit_dir/*
-    expire_in: 1 week

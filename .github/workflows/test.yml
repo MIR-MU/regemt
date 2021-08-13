@@ -68,13 +68,3 @@ jobs:
           pip install -r requirements_fast.txt
       - name: Unit tests
         run: python -m main --fast
-      - name: Upload metric correlations as heatmaps
-        uses: actions/upload-artifact@v2
-        with:
-          name: heatmaps-${{ matrix.python }}
-          path: submit_dir/heatmap-*.png
-      - name: Upload visualizations of regression metrics
-        uses: actions/upload-artifact@v2
-        with:
-          name: metrics-${{ matrix.python }}
-          path: submit_dir/metric-*.png
