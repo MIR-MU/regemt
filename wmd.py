@@ -23,6 +23,7 @@ class ContextualWMD(ReferenceFreeMetric):
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
+        # Splitting the judgements alleviates out-of-memory issues.
         (judgements_head, []), (judgements_tail, []) = judgements.split(method='simple')
         return self._compute(judgements_head) + self._compute(judgements_tail)
 
@@ -79,6 +80,7 @@ class DecontextualizedWMD(ReferenceFreeMetric):
 
     @lru_cache(maxsize=None)
     def compute(self, judgements: Judgements) -> List[float]:
+        # Splitting the judgements alleviates out-of-memory issues.
         (judgements_head, []), (judgements_tail, []) = judgements.split(method='simple')
         return self._compute(judgements_head) + self._compute(judgements_tail)
 
