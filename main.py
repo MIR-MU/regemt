@@ -43,14 +43,14 @@ def main(firstn: Optional[int] = None,
             reports: List[Report] = []
             langs = Evaluator.langs_for_judgements(judgements_type)
 
-            for test_lang_pair in langs:
-                src_lang, tgt_lang = test_lang_pair.split("-")
+            for lang_pair in langs:
+                src_lang, tgt_lang = lang_pair.split("-")
                 if src_langs is not None and src_lang not in src_langs:
                     continue
                 if tgt_langs is not None and tgt_lang not in tgt_langs:
                     continue
 
-                print("Evaluating lang pair %s" % test_lang_pair)
+                print("Evaluating lang pair %s" % lang_pair)
 
                 metrics = []
 
