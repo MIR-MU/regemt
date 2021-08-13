@@ -30,7 +30,8 @@ def main(firstn: Optional[int] = None,
          enable_compositionality: bool = True,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
-         enable_contextual_scm: bool = False):
+         enable_contextual_scm: bool = False,
+         submit_dir: str = '.'):
     for reference_free in reference_frees:
         print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
         for judgements_type in judgements_types:
@@ -54,11 +55,10 @@ def main(firstn: Optional[int] = None,
                 metrics = []
 
                 def make_metric(cls, *args, **kwargs):
-                    if not cls.supports(tgt_lang):
-                        LOGGER.warning(f'{cls} does not support tgt_lang={tgt_lang}')
-                        return None
-                    if reference_free and not cls.supports(src_lang):
-                        LOGGER.warning(f'{cls} does not support src_lang={src_lang}')
+                    if not cls.supports(src_lang, tgt_lang, reference_free):
+                        message = '%s does not support src_lang=%s, tgt_lang=%s, reference_free=%s'
+                        message = message % (cls, src_lang, tgt_lang, reference_free)
+                        LOGGER.warning(message)
                         return None
                     metric = cls(*args, **kwargs)
                     return metric
@@ -68,7 +68,8 @@ def main(firstn: Optional[int] = None,
                     from comet_metric import Comet
                     metrics += [
                         make_metric(Comet),
-                        make_metric(PrismMetric, tgt_lang=tgt_lang, reference_free=reference_free),
+                        make_metric(PrismMetric, src_lang=src_lang, tgt_lang=tgt_lang,
+                                    reference_free=reference_free),
                     ]
 
                 metrics += [
@@ -111,14 +112,16 @@ def main(firstn: Optional[int] = None,
                                     reference_free=reference_free)
                     ]
 
-                regression = make_metric(Regression, metrics, reference_free=reference_free)
-                regression_baseline = make_metric(Regression, None, reference_free=reference_free)
-                metrics = [regression] + metrics + [regression_baseline]
-
                 metrics = list(filter(lambda metric: metric is not None, metrics))
 
-                evaluator = Evaluator("data_dir", test_lang_pair, metrics,
-                                      judgements_type=judgements_type, reference_free=reference_free, firstn=firstn)
+                regression = make_metric(Regression, metrics, reference_free=reference_free)
+                regression_baseline = make_metric(Regression, None, reference_free=reference_free)
+                assert regression is not None and regression_baseline is not None
+                metrics = [regression] + metrics + [regression_baseline]
+
+                evaluator = Evaluator("data_dir", lang_pair, metrics,
+                                      judgements_type=judgements_type,
+                                      reference_free=reference_free, firstn=firstn)
                 report = evaluator.evaluate()
                 reports.append(report)
 
@@ -141,8 +144,8 @@ def main(firstn: Optional[int] = None,
                     ax.set_title(title)
                     plt.show()
                     plt.tight_layout()
-                    plt.savefig(f'{basename}.png', dpi=dpi)
-                    plt.savefig(f'{basename}.pdf', dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.png'), dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.pdf'), dpi=dpi)
                     plt.close()
 
                 plot_correlations(report, 'pearson')
@@ -171,8 +174,8 @@ def main(firstn: Optional[int] = None,
                     ax.set_ylabel('translation length')
                     plt.show()
                     plt.tight_layout()
-                    plt.savefig(f'{basename}.png', dpi=dpi)
-                    plt.savefig(f'{basename}.pdf', dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.png'), dpi=dpi)
+                    plt.savefig(os.path.join(submit_dir, f'{basename}.pdf'), dpi=dpi)
                     plt.close()
 
                 plot_metric(regression_baseline)
