@@ -2,9 +2,13 @@ from typing import List, Any
 from functools import lru_cache
 
 from bert_score import BERTScorer
+from bert_score.utils import lang2model
 from tqdm.autonotebook import tqdm
 
 from common import ReferenceFreeMetric, Judgements
+
+
+MULTILINGUAL_MODEL = lang2model[None]
 
 
 class BERTScore(ReferenceFreeMetric):
@@ -14,13 +18,14 @@ class BERTScore(ReferenceFreeMetric):
     def __init__(self, tgt_lang: str, batch_size: int = 32, reference_free: bool = False):
         if reference_free:
             # force to use multilingual model, presume that both source and target langs are supported
-            self.scorer = BERTScorer(model_type="bert-base-multilingual-cased")
+            self.scorer = BERTScorer(model_type=MULTILINGUAL_MODEL)
+            self.tgt_lang = 'multi'
         else:
             # infer used model from target language -> language of both reference and translation
-            self.scorer = BERTScorer(lang=tgt_lang, rescale_with_baseline=True)
+            self.scorer = BERTScorer(lang=tgt_lang)
+            self.tgt_lang = tgt_lang if lang2model[tgt_lang] != MULTILINGUAL_MODEL else 'multi'
 
         self.reference_free = reference_free
-        self.tgt_lang = tgt_lang
         self.batch_size = batch_size
 
     @lru_cache(maxsize=None)
