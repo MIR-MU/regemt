@@ -29,7 +29,7 @@ def get_wmds(w2v_model: KeyedVectors, tokenized_texts: List[Tuple[List[str], Lis
     with get_context('fork').Pool(None) as pool:
         distances = pool.imap(_get_wmds_worker, tokenized_texts)
         distances = tqdm(distances, total=len(tokenized_texts), desc=f'{desc}: get_wmds()')
-        distances = list(distances)
+        distances = [distance for distance in distances]
     WMD_W2V_MODEL = None
     return distances
 
@@ -95,7 +95,7 @@ def get_wmds_tfidf(w2v_model: KeyedVectors, dictionary: Dictionary, tfidf_model:
     with get_context('fork').Pool(None) as pool:
         distances = pool.imap(_get_wmds_tfidf_worker, tokenized_texts)
         distances = tqdm(distances, total=len(tokenized_texts), desc=f'{desc}: get_wmds_tfidf()')
-        distances = list(distances)
+        distances = [distance for distance in distances]
     WMD_W2V_MODEL = None
     WMD_DICTIONARY = None
     WMD_TFIDF_MODEL = None
