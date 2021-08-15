@@ -326,7 +326,7 @@ class Evaluator:
 
     def _hypotheses_from_judgements(self, references: List[List[str]]):
         # For languages with two references available, you will need to score each reference against the other
-        assert self.reference_free
+        assert not self.reference_free
 
         out_sources, out_references, out_translations, out_meta = [], [], [], []
 
