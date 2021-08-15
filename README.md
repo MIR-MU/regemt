@@ -19,6 +19,7 @@ image][docker] using the [NVIDIA Container Toolkit][nvidia-docker]:
 
 ```sh
 mkdir submit_dir
+chmod 777 submit_dir
 
 # test the installation on a data subsample before running the full evaluation process:
 docker run --rm --gpus all -v "$PWD"/submit_dir:/submit_dir miratmu/regemt --fast
@@ -39,6 +40,7 @@ Alternatively, you can install our package using Python:
 ```sh
 git clone https://github.com/MIR-MU/regemt.git
 cd regemt
+chmod 777 submit_dir
 
 # install the dependencies
 conda create --name wmt_eval python=3.8
