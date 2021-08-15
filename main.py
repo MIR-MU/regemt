@@ -23,120 +23,117 @@ LOGGER = logging.getLogger(__name__)
 def main(firstn: Optional[float] = None,
          reference_frees: Tuple[bool, ...] = (True, False),
          judgements_types: Tuple[str, ...] = ('challengeset', 'florestest2021', 'tedtalks', 'newstest2021'),
-         humans: Tuple[bool, ...] = (True, False),
+         human: bool = False,
          src_langs: Optional[Set[str]] = None,
          tgt_langs: Optional[Set[str]] = None,
          enable_compositionality: bool = True,
          enable_sota_metrics: bool = True,
          enable_fasttext_metrics: bool = True,
          enable_contextual_scm: bool = False):
-    for human in humans:
-        print("Evaluating %shuman systems" % ('' if human else 'non-'))
+    for reference_free in reference_frees:
 
-        for reference_free in reference_frees:
+        if human and reference_free:
+            continue
 
-            if human and reference_free:
+        print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
+        for judgements_type in judgements_types:
+            if judgements_type == 'catastrophic' and not reference_free:
                 continue
 
-            print("Evaluating %sreference-free metrics" % ('' if reference_free else 'non-'))
-            for judgements_type in judgements_types:
-                if judgements_type == 'catastrophic' and not reference_free:
+            print("Evaluating %s judgements" % judgements_type)
+            if judgements_type in Evaluator.submission_judgement_types:
+                print("Generating WMT21 submission")
+
+            langs = Evaluator.langs_for_judgements(judgements_type)
+
+            for lang_pair in langs:
+                src_lang, tgt_lang = lang_pair.split("-")
+                if src_langs is not None and src_lang not in src_langs:
+                    continue
+                if tgt_langs is not None and tgt_lang not in tgt_langs:
                     continue
 
-                print("Evaluating %s judgements" % judgements_type)
-                if judgements_type in Evaluator.submission_judgement_types:
-                    print("Generating WMT21 submission")
+                print("Evaluating lang pair %s" % lang_pair)
 
-                langs = Evaluator.langs_for_judgements(judgements_type)
+                metrics = []
 
-                for lang_pair in langs:
-                    src_lang, tgt_lang = lang_pair.split("-")
-                    if src_langs is not None and src_lang not in src_langs:
-                        continue
-                    if tgt_langs is not None and tgt_lang not in tgt_langs:
-                        continue
+                def make_metric(cls, *args, **kwargs):
+                    if not cls.supports(src_lang, tgt_lang, reference_free):
+                        message = '%s does not support src_lang=%s, tgt_lang=%s, reference_free=%s'
+                        message = message % (cls, src_lang, tgt_lang, reference_free)
+                        LOGGER.warning(message)
+                        return None
+                    metric = cls(*args, **kwargs)
+                    return metric
 
-                    print("Evaluating lang pair %s" % lang_pair)
-
-                    metrics = []
-
-                    def make_metric(cls, *args, **kwargs):
-                        if not cls.supports(src_lang, tgt_lang, reference_free):
-                            message = '%s does not support src_lang=%s, tgt_lang=%s, reference_free=%s'
-                            message = message % (cls, src_lang, tgt_lang, reference_free)
-                            LOGGER.warning(message)
-                            return None
-                        metric = cls(*args, **kwargs)
-                        return metric
-
-                    if enable_sota_metrics:
-                        from prism_metric import PrismMetric
-                        from comet_metric import Comet
-                        metrics += [
-                            make_metric(Comet),
-                            make_metric(PrismMetric, src_lang=src_lang, tgt_lang=tgt_lang,
-                                        reference_free=reference_free),
-                        ]
-                        pass
-
+                if enable_sota_metrics:
+                    from prism_metric import PrismMetric
+                    from comet_metric import Comet
                     metrics += [
-                        make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
-                        make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
-                    ]
-
-                    if enable_contextual_scm:
-                        metrics += [make_metric(ContextualSCM, tgt_lang=tgt_lang, reference_free=reference_free)]
-
-                    metrics += [
-                        make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=False,
-                                    reference_free=reference_free),
-                        make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=True,
-                                    reference_free=reference_free),
-                        make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=False,
-                                    reference_free=reference_free),
-                        make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True,
+                        make_metric(Comet),
+                        make_metric(PrismMetric, src_lang=src_lang, tgt_lang=tgt_lang,
                                     reference_free=reference_free),
                     ]
+                    pass
 
-                    if enable_fasttext_metrics:
-                        metrics += [
-                            make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=False),
-                            make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=True),
-                            make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=False),
-                            make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=True),
-                        ]
+                metrics += [
+                    make_metric(BERTScore, tgt_lang=tgt_lang, reference_free=reference_free),
+                    make_metric(ContextualWMD, tgt_lang=tgt_lang, reference_free=reference_free),
+                ]
 
-                    if enable_sota_metrics:
-                        from bleurt_metric import BLEUrt
-                        metrics += [
-                            make_metric(BLEUrt)
-                        ]
+                if enable_contextual_scm:
+                    metrics += [make_metric(ContextualSCM, tgt_lang=tgt_lang, reference_free=reference_free)]
 
+                metrics += [
+                    make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=False,
+                                reference_free=reference_free),
+                    make_metric(DecontextualizedWMD, tgt_lang=tgt_lang, use_tfidf=True,
+                                reference_free=reference_free),
+                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=False,
+                                reference_free=reference_free),
+                    make_metric(DecontextualizedSCM, tgt_lang=tgt_lang, use_tfidf=True,
+                                reference_free=reference_free),
+                ]
+
+                if enable_fasttext_metrics:
                     metrics += [
-                        make_metric(BLEU),
-                        make_metric(METEOR),
+                        make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=False),
+                        make_metric(SCM, tgt_lang=tgt_lang, use_tfidf=True),
+                        make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=False),
+                        make_metric(WMD, tgt_lang=tgt_lang, use_tfidf=True),
                     ]
 
-                    if enable_compositionality:
-                        metrics += [
-                            make_metric(SyntacticCompositionality, src_lang=src_lang, tgt_lang=tgt_lang,
-                                        reference_free=reference_free)
-                        ]
+                if enable_sota_metrics:
+                    from bleurt_metric import BLEUrt
+                    metrics += [
+                        make_metric(BLEUrt)
+                    ]
 
-                    metrics = list(filter(lambda metric: metric is not None, metrics))
+                metrics += [
+                    make_metric(BLEU),
+                    make_metric(METEOR),
+                ]
 
-                    regression = make_metric(Regression, metrics, reference_free=reference_free)
-                    regression_baseline = make_metric(Regression, None, reference_free=reference_free)
-                    assert regression is not None and regression_baseline is not None
-                    metrics = [regression] + metrics + [regression_baseline]
+                if enable_compositionality:
+                    metrics += [
+                        make_metric(SyntacticCompositionality, src_lang=src_lang, tgt_lang=tgt_lang,
+                                    reference_free=reference_free)
+                    ]
 
-                    evaluator = Evaluator("data_dir", lang_pair, metrics, ["Regression", "Regression_baseline"],
-                                          judgements_type=judgements_type, human=human,
-                                          reference_free=reference_free, firstn=firstn)
-                    if judgements_type in evaluator.submission_judgement_types:
-                        evaluator.submit_and_report()
-                    else:
-                        evaluator.evaluate()
+                metrics = list(filter(lambda metric: metric is not None, metrics))
+
+                regression = make_metric(Regression, metrics, reference_free=reference_free)
+                regression_baseline = make_metric(Regression, None, reference_free=reference_free)
+                assert regression is not None and regression_baseline is not None
+                metrics = [regression] + metrics + [regression_baseline]
+
+                evaluator = Evaluator("data_dir", lang_pair, metrics, ["Regression", "Regression_baseline"],
+                                      judgements_type=judgements_type, human=human,
+                                      reference_free=reference_free, firstn=firstn)
+                if judgements_type in evaluator.submission_judgement_types:
+                    evaluator.submit_and_report()
+                else:
+                    evaluator.evaluate()
 
 
 if __name__ == '__main__':
