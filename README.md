@@ -25,7 +25,7 @@ chmod 777 submit_dir
 docker run --rm --gpus all -v "$PWD"/submit_dir:/submit_dir miratmu/regemt --fast
 
 # simply run the evaluation on the full data sets:
-# this takes ~4hrs on Tesla T4, might take longer on CPU
+# this takes ~10hrs on Tesla T4, might take longer on CPU
 docker run --rm --gpus all -v "$PWD"/submit_dir:/submit_dir miratmu/regemt
 ```
 
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 python -m main --fast
 
 # simply run the evaluation on the full data sets:
-# this takes ~4hrs on Tesla T4, might take longer on CPU
+# this takes ~10hrs on Tesla T4, might take longer on CPU
 python -m main
 ```
 
