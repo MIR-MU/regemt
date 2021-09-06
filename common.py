@@ -2,7 +2,7 @@ import abc
 import os
 from typing import List, Tuple, Iterable, Dict, Optional, Any, Union
 from statistics import mean
-from itertools import repeat, chain
+from itertools import repeat, chain, product
 import logging
 
 import pandas as pd
@@ -333,18 +333,20 @@ class Evaluator:
         for i, ref_pair in enumerate(references):
             if len(ref_pair) < 2:
                 continue
-            ref_a, ref_b = ref_pair
-            assert ref_a
-            assert ref_b
-            out_sources.append(ref_a)
-            out_references.append([ref_a])
-            out_translations.append(ref_b)
-            out_meta.append([i, "ref-A", "ref-B"])
+            keyvalues = tuple(zip(["ref-A", "ref-B", "ref-C", "ref-D"], ref_pair))
+            for (ref_a_key, ref_a_value), (ref_b_key, ref_b_value) in product(keyvalues, keyvalues):
+                assert ref_a_value
+                assert ref_b_value
 
-            out_sources.append(ref_b)
-            out_references.append([ref_b])
-            out_translations.append(ref_a)
-            out_meta.append([i, "ref-B", "ref-A"])
+                out_sources.append(ref_a_value)
+                out_references.append([ref_a_value])
+                out_translations.append(ref_b_value)
+                out_meta.append([i, ref_a_key, ref_b_key])
+
+                out_sources.append(ref_b_value)
+                out_references.append([ref_b_value])
+                out_translations.append(ref_a_value)
+                out_meta.append([i, ref_b_key, ref_a_key])
 
         return out_sources, out_references, out_translations, out_meta
 
@@ -360,7 +362,7 @@ class Evaluator:
             sources = [line.strip() for line in f]
 
         references = []
-        for possible_ref_name in ["ref-A", "ref-B"]:
+        for possible_ref_name in ["ref-A", "ref-B", "ref-C", "ref-D"]:
             references_path = os.path.join(data_dir, "references", "%s.%s.ref.%s.%s"
                                            % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1]))
             err_msg = "%s.%s.ref.%s.%s" % (judgements_type, lang_pair, possible_ref_name, lang_pair.split("-")[1])
@@ -404,7 +406,7 @@ class Evaluator:
                 assert len(sources) == len(references) == len(sys_translations)
 
                 for i, (src, refs, trans) in enumerate(zip(sources, references, sys_translations)):
-                    for ref_name, ref in zip(["ref-A", "ref-B"], refs):
+                    for ref_name, ref in zip(["ref-A", "ref-B", "ref-C", "ref-D"], refs):
                         all_sources.append(src)
                         all_refs.append([ref])
                         all_translations.append(trans)
