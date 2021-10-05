@@ -64,7 +64,7 @@ class FastTextEmbedder:
         return hash(self.lang)
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ContextualEmbedder):
+        if not isinstance(other, FastTextEmbedder):
             return NotImplemented
         return all([
             self.lang == other.lang,
