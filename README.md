@@ -67,3 +67,23 @@ question, don't hesitate to [create an issue][issues] and we'll take a look!
  [docker]: https://hub.docker.com/r/miratmu/regemt
  [nvidia-docker]: https://github.com/NVIDIA/nvidia-docker
  [issues]: https://github.com/MIR-MU/regemt/issues
+
+# Citing RegEmt
+
+### Text
+
+ŠTEFÁNIK, Michal, Vít NOVOTNÝ and Petr SOJKA. Regressive Ensemble for Machine Translation Quality Evaluation. In Markus Freitag. *Proceedings of EMNLP 2021 Sixth Conference on Machine Translation (WMT 21)*. ACL, 2021. 8 pp.
+
+### BibTeX
+
+``` bib
+@inproceedings{stefanik2021regressive,
+  author = {\v{S}tef\'{a}nik, Michal and Novotn\'{y}, V\'{i}t and Sojka, Petr},
+  title = {Regressive Ensemble for Machine Translation Quality Evaluation},
+  booktitle = {Proceedings of {EMNLP} 2021 Sixth Conference on Machine Translation ({WMT} 21)},
+  editor = {Markus Freitag},
+  publisher = {ACL},
+  numpages = {8},
+  url = {https://arxiv.org/abs/2109.07242v1},
+}
+```
